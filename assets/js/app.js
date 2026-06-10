@@ -109,7 +109,7 @@ function renderTimeline(resources) {
 			card.dataset.state = "hidden";
 			card.innerHTML = `
         <button type="button" class="share-btn" aria-label="Compartir este documento" aria-expanded="false">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="10.49" x2="8.59" y2="6.51"/></svg>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </button>
         <span class="badge badge-type">${escapeHtml(item.type)}</span>
         <h3>${escapeHtml(item.title)}</h3>
@@ -427,9 +427,21 @@ const SHARE_ICONS = {
 // the in-page menu, which is cleaner than the OS dialog on desktop.
 const touchOnly = window.matchMedia("(hover: none)");
 
+const SHARE_QUOTE_LENGTH = 200;
+
+/** The shared payload is the quote itself, not just a link. */
+function shareText(item) {
+	const excerpt = (item.excerpt ?? "").trim();
+	const quote =
+		excerpt.length > SHARE_QUOTE_LENGTH
+			? `${excerpt.slice(0, SHARE_QUOTE_LENGTH - 1).trimEnd()}…`
+			: excerpt;
+	return `«${quote}»\n${item.author} — ${item.title} (${item.year})`;
+}
+
 function shareDocument(item, btn, card) {
 	const url = `${location.origin}/linea/${item.year}#doc-${item.id}`;
-	const text = `«${item.title}» — ${item.author} (${item.year})`;
+	const text = shareText(item);
 
 	if (navigator.share && touchOnly.matches) {
 		navigator.share({ title: item.title, text, url }).catch(() => {});
@@ -446,11 +458,11 @@ function openShareMenu(btn, card, text, url) {
 	menu.className = "share-menu";
 	menu.innerHTML = `
 		<button type="button" class="share-option" data-action="copy">
-			${SHARE_ICONS.link}<span>Copiar enlace</span>
+			${SHARE_ICONS.link}<span>Copiar cita y enlace</span>
 		</button>
 		<hr class="share-divider" />
 		<a class="share-option" target="_blank" rel="noopener noreferrer"
-			href="https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}">
+			href="https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}">
 			${SHARE_ICONS.whatsapp}<span>Compartir en WhatsApp</span>
 		</a>
 		<a class="share-option" target="_blank" rel="noopener noreferrer"
@@ -459,7 +471,7 @@ function openShareMenu(btn, card, text, url) {
 		</a>`;
 
 	const copy = menu.querySelector('[data-action="copy"]');
-	copy.dataset.url = url;
+	copy.dataset.payload = `${text}\n${url}`;
 
 	card.appendChild(menu);
 	btn.setAttribute("aria-expanded", "true");
@@ -468,9 +480,9 @@ function openShareMenu(btn, card, text, url) {
 
 function copyShareLink(option) {
 	navigator.clipboard
-		?.writeText(option.dataset.url)
+		?.writeText(option.dataset.payload)
 		.then(() => {
-			option.querySelector("span").textContent = "¡Enlace copiado!";
+			option.querySelector("span").textContent = "¡Copiado!";
 			setTimeout(closeShareMenus, 900);
 		})
 		.catch(() => {});
