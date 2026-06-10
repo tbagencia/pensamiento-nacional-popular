@@ -35,6 +35,10 @@ define('DB_PATH', env('DB_PATH', __DIR__ . '/../data/timeline.sqlite'));
 
 const MIN_YEAR = 1800;
 
+// Max excerpt length in characters. Generous by default so full texts
+// (a speech, a letter) fit; tune per environment via .env.
+define('EXCERPT_MAX_LENGTH', max(1, (int) env('EXCERPT_MAX_LENGTH', '10000')));
+
 /** Loads KEY=VALUE pairs from a .env file into the process environment. */
 function load_env(string $path): void
 {

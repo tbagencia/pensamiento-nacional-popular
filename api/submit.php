@@ -41,8 +41,9 @@ $maxYear = (int) date('Y');
 if ($year < MIN_YEAR || $year > $maxYear) {
     $errors['year'] = "El año debe estar entre " . MIN_YEAR . " y $maxYear.";
 }
-if ($excerpt === '' || mb_strlen($excerpt) > 2000) {
-    $errors['excerpt'] = 'La descripción o extracto es obligatoria (máximo 2000 caracteres).';
+if ($excerpt === '' || mb_strlen($excerpt) > EXCERPT_MAX_LENGTH) {
+    $errors['excerpt'] = 'La descripción o extracto es obligatoria (máximo '
+        . number_format(EXCERPT_MAX_LENGTH, 0, ',', '.') . ' caracteres).';
 }
 if ($sourceUrl !== '' && !filter_var($sourceUrl, FILTER_VALIDATE_URL)) {
     $errors['source_url'] = 'La URL de la fuente no es válida.';

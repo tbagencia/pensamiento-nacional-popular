@@ -1070,6 +1070,10 @@ input[readonly] {
 	color: var(--muted);
 }
 
+.char-counter {
+	text-align: right;
+}
+
 .field-error {
 	margin: var(--space-3xs) 0 0;
 	font-family: var(--font-ui);

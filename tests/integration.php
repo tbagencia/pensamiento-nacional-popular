@@ -166,6 +166,18 @@ $res = request('POST', '/api/submit.php', ['json' => ['title' => '', 'email' => 
 check($res['status'] === 422, 'invalid submission is rejected with 422');
 check(isset($res['json']['errors']['title'], $res['json']['errors']['email']), 'field errors are reported');
 
+$res = request('POST', '/api/submit.php', [
+    'json' => submission(['excerpt' => str_repeat('a', 10001)]),
+    'cookies' => 'visitor',
+]);
+check($res['status'] === 422 && isset($res['json']['errors']['excerpt']), 'excerpt over the configured limit is rejected');
+
+$res = request('POST', '/api/submit.php', [
+    'json' => submission(['excerpt' => str_repeat('b', 2500), 'email' => 'extracto@test.local']),
+    'cookies' => 'visitor',
+]);
+check($res['status'] === 201, 'long excerpt within the configured limit is accepted', $res['json'] ?? $res['body']);
+
 $res = request('POST', '/api/submit.php', ['json' => submission(['website' => 'spam-bot']), 'cookies' => 'visitor']);
 check($res['status'] === 200 && ($res['json']['ok'] ?? false), 'honeypot pretends success');
 $count = db()->query("SELECT COUNT(*) FROM resources WHERE submitter_email = 'visitante@test.local'")->fetchColumn();

@@ -21,9 +21,26 @@ const emailInput = form.elements.email;
 const unlockBtn = document.getElementById('email-unlock');
 const emailHint = document.getElementById('email-hint');
 
+// Character counter for the excerpt. The static maxlength is a fallback;
+// the server-configured limit arrives with the session response.
+const excerptInput = form.elements.excerpt;
+const excerptCounter = document.getElementById('excerpt-counter');
+
+function updateExcerptCounter() {
+  const length = excerptInput.value.length.toLocaleString('es-AR');
+  const max = excerptInput.maxLength.toLocaleString('es-AR');
+  excerptCounter.textContent = `${length} / ${max} caracteres`;
+}
+excerptInput.addEventListener('input', updateExcerptCounter);
+updateExcerptCounter();
+
 fetch('/api/session.php')
   .then((res) => res.json())
-  .then(({ verified_email: verifiedEmail }) => {
+  .then(({ verified_email: verifiedEmail, excerpt_max_length: excerptMax }) => {
+    if (Number.isInteger(excerptMax) && excerptMax > 0) {
+      excerptInput.maxLength = excerptMax;
+      updateExcerptCounter();
+    }
     if (!verifiedEmail) return;
     emailInput.value = verifiedEmail;
     emailInput.readOnly = true;
