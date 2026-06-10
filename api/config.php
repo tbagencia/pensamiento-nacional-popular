@@ -18,6 +18,9 @@ define('DEV_MODE', filter_var(env('DEV_MODE', 'false'), FILTER_VALIDATE_BOOL));
 define('MAIL_FROM', env('MAIL_FROM', 'no-reply@example.com'));
 define('MAIL_FROM_NAME', env('MAIL_FROM_NAME', 'Línea de Tiempo del Pensamiento Nacional y Popular'));
 
+// Comma-separated list notified when a resource is ready for moderation.
+define('MODERATOR_EMAILS', env('MODERATOR_EMAILS', ''));
+
 // 'smtp' (Mailtrap sandbox in dev) or 'mail' (shared hosting in production).
 define('MAIL_DRIVER', env('MAIL_DRIVER', 'mail'));
 define('SMTP_HOST', env('SMTP_HOST', ''));
@@ -60,6 +63,15 @@ function env(string $key, ?string $default = null): ?string
 {
     $value = getenv($key);
     return $value === false ? $default : $value;
+}
+
+/** Valid moderator email addresses from MODERATOR_EMAILS. */
+function moderator_emails(): array
+{
+    return array_values(array_filter(
+        array_map('trim', explode(',', MODERATOR_EMAILS)),
+        fn(string $email) => filter_var($email, FILTER_VALIDATE_EMAIL)
+    ));
 }
 
 /** Base URL of the site, auto-detected. */

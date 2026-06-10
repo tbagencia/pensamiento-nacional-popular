@@ -547,32 +547,84 @@ input:focus, select:focus, textarea:focus {
 
 .admin-header h1 { margin: 0; font-size: var(--text-1); }
 
+.admin-header-actions { display: flex; gap: var(--space-2xs); align-items: center; }
+
+.admin-header .btn-ghost {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* Mobile-first: a 2x2 grid keeps every tab visible at once;
+   wider screens switch to a single row. */
 .admin-tabs {
-  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-2xs);
-  overflow-x: auto;
   padding: var(--space-2xs) var(--space-s);
   background: var(--surface);
   border-block-end: 1px solid var(--line);
 }
 
 .admin-tabs a {
-  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xs);
   text-decoration: none;
   font-size: var(--text--1);
   font-weight: 600;
   color: var(--muted);
-  padding: var(--space-3xs) var(--space-xs);
-  border-radius: var(--radius-pill);
+  padding: var(--space-2xs) var(--space-xs);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-.admin-tabs a.active { background: var(--brand); color: #fff; }
+.admin-tabs a:hover { border-color: var(--brand); color: var(--brand); }
+
+.admin-tabs a.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
 
 .admin-tabs .count {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.12);
   border-radius: var(--radius-pill);
   padding: 0 var(--space-2xs);
   font-size: var(--text--1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Exception: pending-review tab demands attention while it has items */
+.admin-tabs a[data-attention] .count {
+  background: var(--gold);
+  color: var(--brand-deep);
+  font-weight: 700;
+}
+
+@media (min-width: 640px) {
+  .admin-tabs { display: flex; }
+  .admin-tabs a { flex: 0 0 auto; }
+}
+
+.admin-foot {
+  margin-block-start: var(--space-l);
+  padding-block-start: var(--space-s);
+  border-block-start: 1px solid var(--line);
+  font-size: var(--text--1);
+  color: var(--muted);
+}
+
+.admin-foot p { margin-block: var(--space-3xs); }
+
+.admin-foot code {
+  background: rgba(38, 34, 28, 0.07);
+  border-radius: 4px;
+  padding: 0 var(--space-3xs);
 }
 
 .admin-list {
@@ -591,6 +643,48 @@ input:focus, select:focus, textarea:focus {
 }
 
 .admin-actions .btn { padding: var(--space-3xs) var(--space-s); font-size: var(--text--1); }
+
+/* Exception: delete waits for a confirming second click */
+.admin-actions .btn[data-state='confirming'] {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+/* Exception: card leaving after a moderation action */
+.admin-card { transition: opacity 0.25s ease, translate 0.25s var(--ease-out); }
+.admin-card[data-state='leaving'] { opacity: 0; translate: 0 calc(-1 * var(--space-2xs)); }
+
+/* ---------- Block: toasts ---------- */
+
+.toasts {
+  position: fixed;
+  inset-block-end: var(--space-s);
+  inset-inline: 0;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2xs);
+  z-index: 30;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--brand-deep);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: var(--text--1);
+  font-weight: 600;
+  padding: var(--space-2xs) var(--space-m);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-2);
+  opacity: 0;
+  translate: 0 var(--space-2xs);
+  transition: opacity 0.25s ease, translate 0.25s var(--ease-out);
+}
+
+.toast[data-state='visible'] { opacity: 1; translate: 0; }
+.toast[data-state='hidden'] { opacity: 0; }
+.toast-error { background: var(--danger); }
 
 /* ---------- Block: footer ---------- */
 

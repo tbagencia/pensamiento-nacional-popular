@@ -35,7 +35,12 @@ contenido antes de que se publique.
 1. El usuario completa el formulario en `cargar.html` (sin registro, solo email).
 2. El recurso se guarda con estado `pending_email` y recibe un correo con el botón **VALIDAR**.
 3. Al hacer clic, pasa a `pending_review`.
-4. El administrador lo aprueba (`approved`), lo rechaza (`rejected`) o lo elimina desde `/admin/`.
+4. Al validarse, los moderadores configurados en `MODERATOR_EMAILS` (lista
+   separada por comas en `.env`) reciben un email con el recurso y un enlace
+   al panel.
+5. El administrador lo aprueba (`approved`), lo rechaza (`rejected`) o lo
+   elimina desde `/admin/` — sin recargar la página, con notificaciones en
+   pantalla y confirmación en dos pasos para eliminar.
 5. Solo los recursos `approved` aparecen en la línea de tiempo.
 
 ## Configuración

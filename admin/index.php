@@ -26,9 +26,27 @@ if (($_POST['action'] ?? '') === 'login') {
 }
 
 $isAdmin = !empty($_SESSION['admin']);
+$validTabs = ['pending_review', 'pending_email', 'approved', 'rejected'];
+
+function tab_counts(PDO $pdo, array $tabs): array
+{
+    $counts = [];
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM resources WHERE status = ?");
+    foreach ($tabs as $tab) {
+        $stmt->execute([$tab]);
+        $counts[$tab] = (int) $stmt->fetchColumn();
+    }
+    return $counts;
+}
 
 if ($isAdmin && in_array($_POST['action'] ?? '', ['approve', 'reject', 'delete'], true)) {
+    // Requests from admin.js expect JSON; plain form posts get the redirect.
+    $isAjax = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch';
+
     if (!hash_equals($_SESSION['csrf'] ?? '', $_POST['csrf'] ?? '')) {
+        if ($isAjax) {
+            json_response(['ok' => false, 'error' => 'Invalid CSRF token'], 403);
+        }
         http_response_code(403);
         exit('Invalid CSRF token');
     }
@@ -39,12 +57,14 @@ if ($isAdmin && in_array($_POST['action'] ?? '', ['approve', 'reject', 'delete']
         'reject'  => $pdo->prepare("UPDATE resources SET status = 'rejected' WHERE id = ?")->execute([$id]),
         'delete'  => $pdo->prepare("DELETE FROM resources WHERE id = ?")->execute([$id]),
     };
+    if ($isAjax) {
+        json_response(['ok' => true, 'counts' => tab_counts($pdo, $validTabs)]);
+    }
     header('Location: index.php' . (($_POST['tab'] ?? '') ? '?tab=' . urlencode($_POST['tab']) : ''));
     exit;
 }
 
 $tab = $_GET['tab'] ?? 'pending_review';
-$validTabs = ['pending_review', 'pending_email', 'approved', 'rejected'];
 if (!in_array($tab, $validTabs, true)) {
     $tab = 'pending_review';
 }
@@ -53,19 +73,15 @@ $rows = [];
 $counts = [];
 if ($isAdmin) {
     $pdo = db();
-    foreach ($validTabs as $t) {
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM resources WHERE status = ?");
-        $stmt->execute([$t]);
-        $counts[$t] = (int) $stmt->fetchColumn();
-    }
+    $counts = tab_counts($pdo, $validTabs);
     $stmt = $pdo->prepare("SELECT * FROM resources WHERE status = ? ORDER BY created_at DESC");
     $stmt->execute([$tab]);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 $tabLabels = [
-    'pending_review' => 'Pendientes de moderación',
-    'pending_email'  => 'Sin validar email',
+    'pending_review' => 'Pendientes',
+    'pending_email'  => 'Sin validar',
     'approved'       => 'Aprobados',
     'rejected'       => 'Rechazados',
 ];
@@ -104,16 +120,22 @@ function e(?string $s): string
 <?php else: ?>
   <header class="admin-header">
     <h1>Moderación</h1>
-    <form method="post">
-      <input type="hidden" name="action" value="logout">
-      <button type="submit" class="btn btn-ghost">Salir</button>
-    </form>
+    <div class="admin-header-actions">
+      <a class="btn btn-ghost" href="/" target="_blank" rel="noopener">Ver sitio</a>
+      <form method="post">
+        <input type="hidden" name="action" value="logout">
+        <button type="submit" class="btn btn-ghost">Salir</button>
+      </form>
+    </div>
   </header>
 
   <nav class="admin-tabs">
     <?php foreach ($tabLabels as $key => $label): ?>
-      <a href="?tab=<?= $key ?>" class="<?= $tab === $key ? 'active' : '' ?>">
-        <?= e($label) ?> <span class="count"><?= $counts[$key] ?></span>
+      <a href="?tab=<?= $key ?>"
+         class="<?= $tab === $key ? 'active' : '' ?>"
+         <?= $key === 'pending_review' && $counts[$key] > 0 ? 'data-attention' : '' ?>>
+        <span class="label"><?= e($label) ?></span>
+        <span class="count"><?= $counts[$key] ?></span>
       </a>
     <?php endforeach; ?>
   </nav>
@@ -152,7 +174,21 @@ function e(?string $s): string
         </div>
       </article>
     <?php endforeach; ?>
+
+    <footer class="admin-foot">
+      <?php if (moderator_emails()): ?>
+        <p>Notificaciones de moderación activas para:
+          <strong><?= e(implode(', ', moderator_emails())) ?></strong></p>
+        <p>Para cambiar la lista, editá <code>MODERATOR_EMAILS</code> en el archivo <code>.env</code>.</p>
+      <?php else: ?>
+        <p>No hay moderadores configurados: nadie recibe aviso cuando se valida una carga.
+          Agregá <code>MODERATOR_EMAILS</code> en el archivo <code>.env</code>.</p>
+      <?php endif; ?>
+    </footer>
   </main>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script src="/assets/js/admin.js"></script>
 <?php endif; ?>
 
 </body>
