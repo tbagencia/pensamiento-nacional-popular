@@ -411,10 +411,16 @@ a {
 
 .site-header-small {
 	padding: var(--space-l) var(--space-s);
-	text-align: start;
+	text-align: left;
 }
 .site-header-small h1 {
 	font-size: var(--text-2);
+	margin: 0 0 var(--space-2xs);
+	text-align: start;
+}
+.site-header-small .tagline {
+	margin: 0;
+	text-align: start;
 }
 
 .back-link {

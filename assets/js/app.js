@@ -123,7 +123,7 @@ function renderTimeline(resources) {
 		const addLink = document.createElement("a");
 		addLink.className = "add-to-year";
 		addLink.href = `/cargar/${year}`;
-		addLink.textContent = `+ Sumar un documento de ${year}`;
+		addLink.textContent = `+ Aportar un documento de ${year}`;
 		li.appendChild(addLink);
 
 		timelineEl.appendChild(li);
