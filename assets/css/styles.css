@@ -252,12 +252,12 @@ a {
 	right: var(--space-s);
 	padding: var(--space-3xs) var(--space-xs);
 	background: transparent;
-	border: 1.5px solid var(--gold);
+	border: 1px solid var(--gold);
 	border-radius: 999px;
 	color: var(--gold);
 	font-family: var(--font-ui);
 	font-size: var(--text--2);
-	font-weight: 600;
+	font-weight: 400;
 	text-transform: uppercase;
 	letter-spacing: 0.12em;
 	cursor: pointer;
