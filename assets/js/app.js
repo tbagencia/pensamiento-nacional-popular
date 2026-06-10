@@ -30,6 +30,7 @@ let revealObserver = null;
 
 const EXCERPT_COLLAPSE_LENGTH = 320;
 const YEAR_PATH = /^\/linea\/(\d{4})\/?$/;
+const TYPE_PATH = /^\/tipo\/([a-z]+)\/?$/;
 const prefersReducedMotion = window.matchMedia(
 	"(prefers-reduced-motion: reduce)",
 );
@@ -157,7 +158,11 @@ function setupYearNavClicks() {
 		if (!chip) return;
 
 		const year = chip.dataset.year;
-		history.pushState(null, "", `/linea/${year}${typeQuery()}`);
+		history.pushState(
+			null,
+			"",
+			activeType ? `/tipo/${activeType}` : `/linea/${year}`,
+		);
 		scrollToYear(year, prefersReducedMotion.matches ? "auto" : "smooth");
 	});
 }
@@ -190,7 +195,7 @@ function buildTypeNav() {
 		activeType = activeType === picked ? null : picked;
 		refreshTypePills();
 		renderAll();
-		history.replaceState(null, "", `/${typeQuery()}`);
+		history.replaceState(null, "", activeType ? `/tipo/${activeType}` : "/");
 		window.scrollTo({ top: 0, behavior: "auto" });
 	});
 }
@@ -204,14 +209,10 @@ function refreshTypePills() {
 	}
 }
 
-/** Reads the ?tipo= filter from the URL, ignoring unknown values. */
+/** Reads the /tipo/{type} filter from the URL, ignoring unknown values. */
 function typeFromUrl() {
-	const tipo = new URLSearchParams(location.search).get("tipo");
-	return Object.hasOwn(TYPE_LABELS, tipo) ? tipo : null;
-}
-
-function typeQuery() {
-	return activeType ? `?tipo=${activeType}` : "";
+	const tipo = location.pathname.match(TYPE_PATH)?.[1];
+	return tipo && Object.hasOwn(TYPE_LABELS, tipo) ? tipo : null;
 }
 
 function scrollToYear(year, behavior) {
@@ -254,10 +255,15 @@ function setupHistory() {
 	});
 }
 
-/** Mirrors year and type filter into the address bar (shareable URLs). */
+/** Mirrors the view into the address bar: the active type filter wins,
+ *  otherwise the year being scrolled (one concept per URL). */
 function syncUrl(year) {
-	const target = (year === "all" ? "/" : `/linea/${year}`) + typeQuery();
-	if (location.pathname + location.search !== target) {
+	const target = activeType
+		? `/tipo/${activeType}`
+		: year === "all"
+			? "/"
+			: `/linea/${year}`;
+	if (location.pathname !== target) {
 		history.replaceState(null, "", target);
 	}
 }

@@ -150,6 +150,8 @@ check(request('GET', '/linea/1945')['status'] === 200, 'year URL responds');
 check(request('GET', '/cargar/1945')['status'] === 200, 'prefilled form URL responds');
 check(request('GET', '/linea/abcd')['status'] === 404, 'invalid year URL is 404');
 check(request('GET', '/linea/')['status'] === 302, 'year-less /linea redirects home');
+check(request('GET', '/tipo/discurso')['status'] === 200, 'type filter URL responds');
+check(request('GET', '/tipo/zarzuela')['status'] === 302, 'unknown type redirects home');
 
 section('Document share landing');
 $res = request('GET', '/documento/1');

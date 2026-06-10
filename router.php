@@ -20,6 +20,18 @@ if (preg_match('#^/linea/[0-9]{4}/?$#', $path)) {
     return true;
 }
 
+if (preg_match('#^/tipo/(discurso|carta|manifiesto|libro|ensayo|poema|entrevista|texto)/?$#', $path)) {
+    header('Content-Type: text/html; charset=utf-8');
+    readfile(__DIR__ . '/index.html');
+    return true;
+}
+
+// Unknown type filters go home rather than 404.
+if (preg_match('#^/tipo(/.*)?$#', $path)) {
+    header('Location: /', true, 302);
+    return true;
+}
+
 if (preg_match('#^/cargar(/[0-9]{4})?/?$#', $path)) {
     header('Content-Type: text/html; charset=utf-8');
     readfile(__DIR__ . '/cargar.html');

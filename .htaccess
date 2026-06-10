@@ -23,6 +23,8 @@ RedirectMatch 404 ^/tests
   RewriteEngine On
   RewriteRule ^linea/?$ / [R=302,L]
   RewriteRule ^linea/[0-9]{4}/?$ index.html [L]
+  RewriteRule ^tipo/(discurso|carta|manifiesto|libro|ensayo|poema|entrevista|texto)/?$ index.html [L]
+  RewriteRule ^tipo(/.*)?$ / [R=302,L]
   RewriteRule ^cargar(/[0-9]{4})?/?$ cargar.html [L]
   RewriteRule ^validar/([a-f0-9]{64})/?$ api/verify.php?token=$1 [L]
   RewriteRule ^documento/([0-9]+)/?$ api/documento.php?id=$1 [L]
