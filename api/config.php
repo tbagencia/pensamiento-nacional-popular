@@ -30,7 +30,8 @@ define('SMTP_PASS', env('SMTP_PASS', ''));
 
 const SITE_NAME = 'Línea de Tiempo del Pensamiento Nacional y Popular Argentino';
 
-const DB_PATH = __DIR__ . '/../data/timeline.sqlite';
+// Overridable via env so the test suite can run on a throwaway database.
+define('DB_PATH', env('DB_PATH', __DIR__ . '/../data/timeline.sqlite'));
 
 const MIN_YEAR = 1800;
 

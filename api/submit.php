@@ -6,6 +6,7 @@
  * 'pending_review' so a moderator can approve or reject it.
  */
 
+session_start();
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/mailer.php';
 
@@ -63,6 +64,18 @@ $stmt = $pdo->prepare(
 $stmt->execute([$email]);
 if ((int) $stmt->fetchColumn() >= 5) {
     json_response(['errors' => ['email' => 'Se alcanzó el límite de cargas diarias para este email.']], 429);
+}
+
+// An email already verified in this session skips re-validation:
+// the resource goes straight to moderation, no link is sent.
+if ($email === ($_SESSION['verified_email'] ?? null)) {
+    $stmt = $pdo->prepare(
+        "INSERT INTO resources (title, author, year, type, excerpt, source_url, submitter_email, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_review')"
+    );
+    $stmt->execute([$title, $author, $year, $type, $excerpt, $sourceUrl ?: null, $email]);
+    notify_moderators(['title' => $title, 'author' => $author, 'year' => $year]);
+    json_response(['ok' => true, 'already_verified' => true], 201);
 }
 
 $token = bin2hex(random_bytes(32));

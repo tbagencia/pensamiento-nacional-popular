@@ -68,9 +68,12 @@
 
     <div class="field">
       <label for="email">Tu email *</label>
-      <input type="email" id="email" name="email" required
-             placeholder="tu@email.com">
-      <p class="field-hint">Solo lo usamos para validar la carga. No se publica.</p>
+      <div class="email-row">
+        <input type="email" id="email" name="email" required
+               placeholder="tu@email.com">
+        <button type="button" id="email-unlock" class="btn btn-ghost" hidden>Cambiar</button>
+      </div>
+      <p class="field-hint" id="email-hint">Solo lo usamos para validar la carga. No se publica.</p>
       <p class="field-error" data-for="email"></p>
     </div>
 
@@ -86,9 +89,12 @@
 
   <div id="success" class="card success-card" hidden>
     <h2>¡Carga recibida!</h2>
-    <p>Te enviamos un email a <strong id="success-email"></strong>.</p>
-    <p>Para terminar de confirmar la carga, abrí el email y hacé clic en el botón <strong>VALIDAR</strong>. Después, un moderador revisará el contenido antes de publicarlo.</p>
-    <p id="dev-link" hidden></p>
+    <div id="success-mail-flow">
+      <p>Te enviamos un email a <strong id="success-email"></strong>.</p>
+      <p>Para terminar de confirmar la carga, abrí el email y hacé clic en el botón <strong>VALIDAR</strong>. Después, un moderador revisará el contenido antes de publicarlo.</p>
+      <p id="dev-link" hidden></p>
+    </div>
+    <p id="success-direct" hidden>Tu email ya está validado, así que el aporte pasó directo a revisión de los moderadores. Una vez aprobado, aparecerá en la línea de tiempo.</p>
     <a href="/" class="btn btn-primary">Volver a la línea de tiempo</a>
   </div>
 </main>

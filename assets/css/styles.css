@@ -506,6 +506,25 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--brand);
 }
 
+.email-row {
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: center;
+}
+
+.email-row input { flex: 1; }
+
+.email-row .btn {
+  flex: 0 0 auto;
+  padding: var(--space-3xs) var(--space-xs);
+  font-size: var(--text--1);
+}
+
+input[readonly] {
+  background: #efeadd;
+  color: var(--muted);
+}
+
 .field-hint {
   margin: var(--space-3xs) 0 0;
   font-family: var(--font-ui);

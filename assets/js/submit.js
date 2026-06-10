@@ -15,6 +15,31 @@ if (Number.isInteger(yearParam) && yearParam >= 1800 && yearParam <= new Date().
   form.elements.year.value = yearParam;
 }
 
+// If this session already verified an email, pre-fill and lock the field.
+// The server decides whether validation is skipped; this is just UX.
+const emailInput = form.elements.email;
+const unlockBtn = document.getElementById('email-unlock');
+const emailHint = document.getElementById('email-hint');
+
+fetch('/api/session.php')
+  .then((res) => res.json())
+  .then(({ verified_email: verifiedEmail }) => {
+    if (!verifiedEmail) return;
+    emailInput.value = verifiedEmail;
+    emailInput.readOnly = true;
+    unlockBtn.hidden = false;
+    emailHint.textContent = 'Email ya validado en esta sesión: la carga pasa directo a moderación.';
+  })
+  .catch(() => {});
+
+unlockBtn.addEventListener('click', () => {
+  emailInput.readOnly = false;
+  emailInput.value = '';
+  emailInput.focus();
+  unlockBtn.hidden = true;
+  emailHint.textContent = 'Solo lo usamos para validar la carga. No se publica.';
+});
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   clearErrors();
@@ -35,15 +60,21 @@ form.addEventListener('submit', async (e) => {
     const data = await res.json();
 
     if (res.ok && data.ok) {
-      document.getElementById('success-email').textContent = payload.email;
+      if (data.already_verified) {
+        // No validation email this time: straight to moderation.
+        document.getElementById('success-mail-flow').hidden = true;
+        document.getElementById('success-direct').hidden = false;
+      } else {
+        document.getElementById('success-email').textContent = payload.email;
 
-      // Local development fallback when mail() is unavailable.
-      if (data.verify_url) {
-        const devLink = document.getElementById('dev-link');
-        devLink.hidden = false;
-        devLink.innerHTML =
-          `<small>Modo desarrollo — el email no pudo enviarse. ` +
-          `<a href="${data.verify_url}">Validar manualmente</a></small>`;
+        // Local development fallback when mail() is unavailable.
+        if (data.verify_url) {
+          const devLink = document.getElementById('dev-link');
+          devLink.hidden = false;
+          devLink.innerHTML =
+            `<small>Modo desarrollo — el email no pudo enviarse. ` +
+            `<a href="${data.verify_url}">Validar manualmente</a></small>`;
+        }
       }
 
       form.hidden = true;

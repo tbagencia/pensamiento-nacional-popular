@@ -87,6 +87,19 @@ activarlo:
 
 El cliente SMTP (`api/mailer.php`) es PHP puro, sin Composer.
 
+## Tests
+
+Suite de integración sin dependencias que levanta un servidor de prueba con
+una base descartable y recorre el circuito completo por HTTP (carga,
+validación de email, salto de validación por sesión, límite diario,
+moderación con CSRF):
+
+```bash
+php tests/integration.php
+```
+
+Sale con código 0 si todo pasa. Correrla antes de cada deploy.
+
 ## Deploy en Hostinger (hosting compartido)
 
 1. **Subir archivos**: copiar todo el contenido de esta carpeta a `public_html/`

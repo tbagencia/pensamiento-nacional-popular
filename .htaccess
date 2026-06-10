@@ -10,8 +10,9 @@
   </IfModule>
 </FilesMatch>
 
-# Hide git metadata and docs if the repo is deployed as-is.
+# Hide git metadata and the test suite if the repo is deployed as-is.
 RedirectMatch 404 /\.git
+RedirectMatch 404 ^/tests
 
 # Friendly URLs (assumes deployment at the domain root).
 #   /linea/1945  -> timeline positioned at that year

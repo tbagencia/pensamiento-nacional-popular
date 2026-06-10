@@ -1,6 +1,7 @@
 <?php
 /** Email verification landing page (target of the VALIDAR button). */
 
+session_start();
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/mailer.php';
 
@@ -9,7 +10,9 @@ $state = 'invalid';
 
 if ($token !== '' && preg_match('/^[a-f0-9]{64}$/', $token)) {
     $pdo = db();
-    $stmt = $pdo->prepare("SELECT id, status, title, author, year FROM resources WHERE verify_token = ?");
+    $stmt = $pdo->prepare(
+        "SELECT id, status, title, author, year, submitter_email FROM resources WHERE verify_token = ?"
+    );
     $stmt->execute([$token]);
     $resource = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -22,44 +25,9 @@ if ($token !== '' && preg_match('/^[a-f0-9]{64}$/', $token)) {
         } else {
             $state = 'already';
         }
-    }
-}
-
-/** Tells every configured moderator that a resource awaits review. */
-function notify_moderators(array $resource): void
-{
-    $emails = moderator_emails();
-    if (!$emails) {
-        return;
-    }
-
-    $title = htmlspecialchars($resource['title'], ENT_QUOTES, 'UTF-8');
-    $author = htmlspecialchars($resource['author'], ENT_QUOTES, 'UTF-8');
-    $year = (int) $resource['year'];
-    $adminUrl = base_url() . '/admin/';
-    $subject = 'Nuevo recurso para moderar - ' . $resource['title'];
-
-    $body = <<<HTML
-    <!DOCTYPE html>
-    <html lang="es">
-    <body style="font-family: Arial, sans-serif; background: #f4f1ea; padding: 24px;">
-      <div style="max-width: 520px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px;">
-        <h2 style="color: #1d3557; margin-top: 0;">Nuevo recurso pendiente</h2>
-        <p>Se validó una nueva carga y espera moderación:</p>
-        <p style="background: #f7f3ea; border-radius: 6px; padding: 16px;">
-          <strong>$title</strong><br>
-          $author · $year
-        </p>
-        <p style="text-align: center; margin: 32px 0;">
-          <a href="$adminUrl" style="background: #1d6fb8; color: #fff; padding: 14px 40px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">Ir al panel</a>
-        </p>
-      </div>
-    </body>
-    </html>
-    HTML;
-
-    foreach ($emails as $email) {
-        send_email($email, $subject, $body);
+        // Remember the verified email: further submissions in this session
+        // skip the email-validation step.
+        $_SESSION['verified_email'] = $resource['submitter_email'];
     }
 }
 
