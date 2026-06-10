@@ -206,7 +206,7 @@ a { color: var(--brand); }
   top: 0;
   z-index: 10;
   display: flex;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
   overflow-x: auto;
   padding: var(--space-xs) var(--space-m);
   background: color-mix(in srgb, var(--paper) 92%, transparent);
@@ -232,9 +232,10 @@ a { color: var(--brand); }
   background: transparent;
   color: var(--brand);
   border-radius: var(--radius-pill);
-  padding: var(--space-3xs) var(--space-xs);
+  /* Mobile-first: comfortable touch target (~44px high) */
+  padding: var(--space-2xs) var(--space-s);
   font-family: var(--font-ui);
-  font-size: var(--text--1);
+  font-size: var(--text-0);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease, scale 0.2s var(--ease-out);
@@ -771,7 +772,12 @@ input:focus, select:focus, textarea:focus {
       transparent, #000 var(--space-l), #000 calc(100% - var(--space-l)), transparent);
   }
 
-  .year-chip { background: var(--paper); }
+  /* Compact pills in the stacked rail; pointer precision needs less area. */
+  .year-chip {
+    background: var(--paper);
+    padding: var(--space-3xs) var(--space-xs);
+    font-size: var(--text--1);
+  }
   .year-chip:hover { background: color-mix(in srgb, var(--sky) 30%, var(--paper)); }
   .year-chip[aria-current='location'] { background: var(--brand); }
 }
