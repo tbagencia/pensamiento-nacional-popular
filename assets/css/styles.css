@@ -66,6 +66,9 @@
 *::before,
 *::after { box-sizing: border-box; }
 
+/* The hidden attribute must win over any display rule (.btn, .type-nav…). */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   font-family: var(--font-ui);
@@ -252,6 +255,40 @@ a { color: var(--brand); }
   background: var(--brand);
   border-color: var(--brand);
   color: #fff;
+}
+
+/* ---------- Block: type filter ---------- */
+
+.type-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  justify-content: center;
+  max-inline-size: var(--container);
+  margin-inline: auto;
+  padding: var(--space-s) var(--space-s) 0;
+}
+
+.type-pill {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: var(--radius-pill);
+  padding: var(--space-3xs) var(--space-xs);
+  font-family: var(--font-ui);
+  font-size: var(--text--1);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.type-pill:hover { border-color: var(--brand); color: var(--brand); }
+
+/* Exception: the active filter */
+.type-pill[aria-pressed='true'] {
+  background: var(--brand-deep);
+  border-color: var(--brand-deep);
+  color: var(--gold);
 }
 
 /* ---------- Block: timeline ---------- */
@@ -799,4 +836,32 @@ input[readonly] {
   }
   .year-chip:hover { background: color-mix(in srgb, var(--sky) 30%, var(--paper)); }
   .year-chip[aria-current='location'] { background: var(--brand); }
+
+  /* Type filters float in the right gutter, mirroring the year rail:
+     a narrow wrapping cluster, up to three pills per row. The top offset
+     matches the rail's margin + fade padding so the first row of pills
+     lines up with the first year pill. */
+  .type-nav {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: start;
+    align-self: start;
+    position: sticky;
+    top: calc(var(--space-m) + var(--space-l));
+    margin-block-start: calc(var(--space-m) + var(--space-l));
+    margin-inline: var(--space-l) var(--space-s);
+    inline-size: calc(100% - var(--space-l) - var(--space-s));
+    max-inline-size: 18rem;
+    gap: var(--space-3xs);
+    justify-content: flex-start;
+    padding: 0;
+  }
+
+  /* Subtler, smaller pills than the year chips: filters are secondary. */
+  .type-pill {
+    font-size: var(--text--2);
+    padding: 0.25em 0.7em;
+    background: transparent;
+    border-color: var(--line);
+  }
 }

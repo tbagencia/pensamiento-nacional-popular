@@ -9,7 +9,24 @@
 const timelineEl = document.getElementById('timeline');
 const statusEl = document.getElementById('status');
 const yearNav = document.querySelector('.year-nav');
+const typeNav = document.getElementById('type-nav');
 const toTopBtn = document.getElementById('to-top');
+
+const TYPE_LABELS = {
+  discurso: 'Discursos',
+  carta: 'Cartas',
+  manifiesto: 'Manifiestos',
+  libro: 'Libros',
+  ensayo: 'Ensayos',
+  poema: 'Poemas',
+  entrevista: 'Entrevistas',
+  texto: 'Otros textos',
+};
+
+let allResources = [];
+let activeType = null;
+let spyObserver = null;
+let revealObserver = null;
 
 const EXCERPT_COLLAPSE_LENGTH = 320;
 const YEAR_PATH = /^\/linea\/(\d{4})\/?$/;
@@ -24,16 +41,15 @@ async function init() {
   try {
     const res = await fetch('/api/resources.php');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const { resources } = await res.json();
+    ({ resources: allResources } = await res.json());
 
-    renderTimeline(resources);
-    buildYearNav(resources);
-    syncNavHeight();
-    setupScrollSpy();
-    setupCardReveal();
+    buildTypeNav();
+    setupYearNavClicks();
+    setupNavMetrics();
     setupReadMore();
     setupToTop();
     setupHistory();
+    renderAll();
     statusEl.hidden = true;
     goToYearFromUrl(false);
   } catch (err) {
@@ -42,9 +58,24 @@ async function init() {
   }
 }
 
+function currentResources() {
+  return activeType ? allResources.filter((r) => r.type === activeType) : allResources;
+}
+
+/** Re-renders timeline and year chips; safe to call on every filter change. */
+function renderAll() {
+  renderTimeline(currentResources());
+  renderYearChips(currentResources());
+  applyNavMetrics();
+  setupScrollSpy();
+  setupCardReveal();
+}
+
 /* ---------- Rendering ---------- */
 
 function renderTimeline(resources) {
+  timelineEl.innerHTML = '';
+
   const byYear = new Map();
   for (const r of resources) {
     if (!byYear.has(r.year)) byYear.set(r.year, []);
@@ -52,7 +83,7 @@ function renderTimeline(resources) {
   }
 
   if (byYear.size === 0) {
-    timelineEl.innerHTML = '<li class="empty">Todavía no hay documentos publicados.</li>';
+    timelineEl.innerHTML = '<li class="empty">No hay documentos para este filtro.</li>';
     return;
   }
 
@@ -90,7 +121,8 @@ function renderTimeline(resources) {
   }
 }
 
-function buildYearNav(resources) {
+function renderYearChips(resources) {
+  yearNav.innerHTML = '';
   const years = [...new Set(resources.map((r) => r.year))].sort((a, b) => a - b);
 
   for (const year of years) {
@@ -101,7 +133,9 @@ function buildYearNav(resources) {
     chip.textContent = year;
     yearNav.appendChild(chip);
   }
+}
 
+function setupYearNavClicks() {
   yearNav.addEventListener('click', (e) => {
     const chip = e.target.closest('.year-chip');
     if (!chip) return;
@@ -109,6 +143,41 @@ function buildYearNav(resources) {
     const year = chip.dataset.year;
     history.pushState(null, '', `/linea/${year}`);
     scrollToYear(year, prefersReducedMotion.matches ? 'auto' : 'smooth');
+  });
+}
+
+/* ---------- Type filter ---------- */
+
+function buildTypeNav() {
+  const present = new Set(allResources.map((r) => r.type));
+  const types = Object.keys(TYPE_LABELS).filter((t) => present.has(t));
+  if (types.length < 2) return;
+
+  // "Todos" represents the no-filter state and is selected by default.
+  for (const type of ['all', ...types]) {
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'type-pill';
+    pill.dataset.type = type;
+    pill.setAttribute('aria-pressed', String(type === 'all'));
+    pill.textContent = type === 'all' ? 'Todos' : TYPE_LABELS[type];
+    typeNav.appendChild(pill);
+  }
+  typeNav.hidden = false;
+
+  typeNav.addEventListener('click', (e) => {
+    const pill = e.target.closest('.type-pill');
+    if (!pill) return;
+
+    // Clicking the active filter (or "Todos") returns to the unfiltered view.
+    const picked = pill.dataset.type === 'all' ? null : pill.dataset.type;
+    activeType = activeType === picked ? null : picked;
+    for (const p of typeNav.querySelectorAll('.type-pill')) {
+      p.setAttribute('aria-pressed', String(p.dataset.type === (activeType ?? 'all')));
+    }
+    renderAll();
+    history.replaceState(null, '', '/');
+    window.scrollTo({ top: 0, behavior: 'auto' });
   });
 }
 
@@ -183,6 +252,7 @@ function setActiveChip(year) {
 }
 
 function setupScrollSpy() {
+  spyObserver?.disconnect();
   const sections = timelineEl.querySelectorAll('.timeline-year');
   if (!('IntersectionObserver' in window) || sections.length === 0) return;
 
@@ -203,27 +273,29 @@ function setupScrollSpy() {
     { rootMargin: '-25% 0px -65% 0px' }
   );
   sections.forEach((s) => spy.observe(s));
+  spyObserver = spy;
 }
 
-function syncNavHeight() {
-  const apply = () => {
-    // On desktop the nav is a side rail and takes no top space.
-    const navHeight = desktopRail.matches ? 0 : yearNav.offsetHeight;
-    document.documentElement.style.setProperty('--nav-h', `${navHeight}px`);
+function applyNavMetrics() {
+  // On desktop the nav is a side rail and takes no top space.
+  const navHeight = desktopRail.matches ? 0 : yearNav.offsetHeight;
+  document.documentElement.style.setProperty('--nav-h', `${navHeight}px`);
 
-    // Year sections stop below the sticky nav when scrolled into view.
-    for (const section of timelineEl.querySelectorAll('.timeline-year')) {
-      section.style.scrollMarginTop = `${navHeight + 8}px`;
-    }
-  };
-  apply();
-  window.addEventListener('resize', apply);
-  desktopRail.addEventListener('change', apply);
+  // Year sections stop below the sticky nav when scrolled into view.
+  for (const section of timelineEl.querySelectorAll('.timeline-year')) {
+    section.style.scrollMarginTop = `${navHeight + 8}px`;
+  }
+}
+
+function setupNavMetrics() {
+  window.addEventListener('resize', applyNavMetrics);
+  desktopRail.addEventListener('change', applyNavMetrics);
 }
 
 /* ---------- Card reveal ---------- */
 
 function setupCardReveal() {
+  revealObserver?.disconnect();
   const cards = timelineEl.querySelectorAll('.card');
 
   if (!('IntersectionObserver' in window) || prefersReducedMotion.matches) {
@@ -243,6 +315,7 @@ function setupCardReveal() {
     { rootMargin: '0px 0px -10% 0px', threshold: 0.05 }
   );
   cards.forEach((c) => reveal.observe(c));
+  revealObserver = reveal;
 }
 
 /* ---------- Read more toggle ---------- */
