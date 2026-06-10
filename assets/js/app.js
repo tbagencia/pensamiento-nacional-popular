@@ -375,7 +375,15 @@ function setupCardReveal() {
 		},
 		{ rootMargin: "0px 0px -10% 0px", threshold: 0.05 },
 	);
-	cards.forEach((c) => reveal.observe(c));
+	// Cards already in the viewport show immediately: an above-the-fold
+	// card waiting for a scroll reveal reads as a rendering bug.
+	for (const c of cards) {
+		if (c.getBoundingClientRect().top < window.innerHeight) {
+			c.dataset.state = "visible";
+		} else {
+			reveal.observe(c);
+		}
+	}
 	revealObserver = reveal;
 }
 
