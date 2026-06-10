@@ -207,18 +207,26 @@ a { color: var(--brand); }
   display: flex;
   gap: var(--space-2xs);
   overflow-x: auto;
-  padding: var(--space-2xs) var(--space-s);
+  padding: var(--space-xs) var(--space-m);
   background: color-mix(in srgb, var(--paper) 92%, transparent);
   backdrop-filter: blur(6px);
   border-block-end: 1px solid var(--line);
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  /* Fade the edges to hint that more years continue beyond them.
+     The fade zone matches the inline padding, so resting pills sit in
+     the opaque area and the magnified pill never looks clipped. */
+  -webkit-mask-image: linear-gradient(to right,
+    transparent, #000 var(--space-m), #000 calc(100% - var(--space-m)), transparent);
+  mask-image: linear-gradient(to right,
+    transparent, #000 var(--space-m), #000 calc(100% - var(--space-m)), transparent);
 }
 
 .year-nav::-webkit-scrollbar { display: none; }
 
 .year-chip {
   flex: 0 0 auto;
+  position: relative;
   border: 1px solid var(--brand);
   background: transparent;
   color: var(--brand);
@@ -228,8 +236,11 @@ a { color: var(--brand); }
   font-size: var(--text--1);
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, scale 0.15s var(--ease-out);
+  transition: background 0.2s ease, color 0.2s ease, scale 0.2s var(--ease-out);
 }
+
+/* The magnified active pill overlaps its shrunken neighbours. */
+.year-chip[aria-current='location'] { z-index: 1; }
 
 .year-chip:hover { background: color-mix(in srgb, var(--sky) 30%, transparent); }
 .year-chip:active { scale: 0.95; }
@@ -748,7 +759,13 @@ input:focus, select:focus, textarea:focus {
     background: transparent;
     backdrop-filter: none;
     border: 0;
-    padding: var(--space-3xs);
+    /* Block padding matches the vertical fade zone; inline padding gives
+       the centered magnification room on both sides. */
+    padding: var(--space-l) var(--space-xs);
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent, #000 var(--space-l), #000 calc(100% - var(--space-l)), transparent);
+    mask-image: linear-gradient(to bottom,
+      transparent, #000 var(--space-l), #000 calc(100% - var(--space-l)), transparent);
   }
 
   .year-chip { background: var(--paper); }

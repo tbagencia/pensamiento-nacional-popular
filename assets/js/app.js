@@ -107,7 +107,7 @@ function buildYearNav(resources) {
     if (!chip) return;
 
     const year = chip.dataset.year;
-    history.pushState(null, '', year === 'all' ? '/' : `/linea/${year}`);
+    history.pushState(null, '', `/linea/${year}`);
     scrollToYear(year, prefersReducedMotion.matches ? 'auto' : 'smooth');
   });
 }
@@ -146,9 +146,21 @@ function syncUrl(year) {
 
 /* ---------- Navigation interactivity ---------- */
 
+// macOS-dock-like magnification: the active pill is largest and
+// neighbours shrink with distance.
+const CHIP_SCALES = [1.15, 1.08, 1.03, 1];
+
 function setActiveChip(year) {
-  for (const chip of yearNav.querySelectorAll('.year-chip')) {
-    if (chip.dataset.year === String(year)) {
+  const chips = [...yearNav.querySelectorAll('.year-chip')];
+  const activeIndex = chips.findIndex((c) => c.dataset.year === String(year));
+
+  chips.forEach((chip, i) => {
+    const distance = activeIndex === -1 ? Infinity : Math.abs(i - activeIndex);
+    chip.style.scale = prefersReducedMotion.matches
+      ? ''
+      : String(CHIP_SCALES[Math.min(distance, CHIP_SCALES.length - 1)]);
+
+    if (i === activeIndex) {
       chip.setAttribute('aria-current', 'location');
       // Keep the active chip centered in the scrollable nav
       // (vertical rail on desktop, horizontal bar on mobile).
@@ -167,7 +179,7 @@ function setActiveChip(year) {
     } else {
       chip.removeAttribute('aria-current');
     }
-  }
+  });
 }
 
 function setupScrollSpy() {
