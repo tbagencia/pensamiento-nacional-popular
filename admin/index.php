@@ -7,6 +7,20 @@
 session_start();
 require_once __DIR__ . '/../api/db.php';
 
+// When ADMIN_PATH is set (production), the panel only answers at
+// /panel/{ADMIN_PATH} and the guessable /admin/ URL turns into a 404.
+// The secret lives in .env, never in this public repository.
+$adminPath = env('ADMIN_PATH', '') ?? '';
+if ($adminPath !== '') {
+    $requestPath = rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '', '/');
+    if (!hash_equals('/panel/' . $adminPath, $requestPath)) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo '404 Not Found';
+        exit;
+    }
+}
+
 $loginError = null;
 
 if (($_POST['action'] ?? '') === 'login') {

@@ -45,6 +45,7 @@ async function init() {
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 		({ resources: allResources } = await res.json());
 
+		activeType = typeFromUrl();
 		buildTypeNav();
 		setupYearNavClicks();
 		setupNavMetrics();
@@ -156,7 +157,7 @@ function setupYearNavClicks() {
 		if (!chip) return;
 
 		const year = chip.dataset.year;
-		history.pushState(null, "", `/linea/${year}`);
+		history.pushState(null, "", `/linea/${year}${typeQuery()}`);
 		scrollToYear(year, prefersReducedMotion.matches ? "auto" : "smooth");
 	});
 }
@@ -174,10 +175,10 @@ function buildTypeNav() {
 		pill.type = "button";
 		pill.className = "type-pill";
 		pill.dataset.type = type;
-		pill.setAttribute("aria-pressed", String(type === "all"));
 		pill.textContent = type === "all" ? "Todos" : TYPE_LABELS[type];
 		typeNav.appendChild(pill);
 	}
+	refreshTypePills();
 	typeNav.hidden = false;
 
 	typeNav.addEventListener("click", (e) => {
@@ -187,16 +188,30 @@ function buildTypeNav() {
 		// Clicking the active filter (or "Todos") returns to the unfiltered view.
 		const picked = pill.dataset.type === "all" ? null : pill.dataset.type;
 		activeType = activeType === picked ? null : picked;
-		for (const p of typeNav.querySelectorAll(".type-pill")) {
-			p.setAttribute(
-				"aria-pressed",
-				String(p.dataset.type === (activeType ?? "all")),
-			);
-		}
+		refreshTypePills();
 		renderAll();
-		history.replaceState(null, "", "/");
+		history.replaceState(null, "", `/${typeQuery()}`);
 		window.scrollTo({ top: 0, behavior: "auto" });
 	});
+}
+
+function refreshTypePills() {
+	for (const p of typeNav.querySelectorAll(".type-pill")) {
+		p.setAttribute(
+			"aria-pressed",
+			String(p.dataset.type === (activeType ?? "all")),
+		);
+	}
+}
+
+/** Reads the ?tipo= filter from the URL, ignoring unknown values. */
+function typeFromUrl() {
+	const tipo = new URLSearchParams(location.search).get("tipo");
+	return Object.hasOwn(TYPE_LABELS, tipo) ? tipo : null;
+}
+
+function typeQuery() {
+	return activeType ? `?tipo=${activeType}` : "";
 }
 
 function scrollToYear(year, behavior) {
@@ -228,13 +243,21 @@ function goToYearFromUrl(smooth) {
 }
 
 function setupHistory() {
-	window.addEventListener("popstate", () => goToYearFromUrl(true));
+	window.addEventListener("popstate", () => {
+		const tipo = typeFromUrl();
+		if (tipo !== activeType) {
+			activeType = tipo;
+			refreshTypePills();
+			renderAll();
+		}
+		goToYearFromUrl(true);
+	});
 }
 
-/** Mirrors the year being viewed into the address bar (shareable URLs). */
+/** Mirrors year and type filter into the address bar (shareable URLs). */
 function syncUrl(year) {
-	const target = year === "all" ? "/" : `/linea/${year}`;
-	if (location.pathname !== target) {
+	const target = (year === "all" ? "/" : `/linea/${year}`) + typeQuery();
+	if (location.pathname + location.search !== target) {
 		history.replaceState(null, "", target);
 	}
 }

@@ -39,8 +39,11 @@ contenido antes de que se publique.
    separada por comas en `.env`) reciben un email con el documento y un enlace
    al panel.
 5. El administrador lo aprueba (`approved`), lo rechaza (`rejected`) o lo
-   elimina desde `/admin/` — sin recargar la página, con notificaciones en
-   pantalla y confirmación en dos pasos para eliminar.
+   elimina desde el panel de moderación — sin recargar la página, con
+   notificaciones en pantalla y confirmación en dos pasos para eliminar.
+   El panel vive en `/admin/` por defecto; si `ADMIN_PATH` está definido en
+   `.env`, pasa a responder solo en `/panel/<ADMIN_PATH>` y `/admin/`
+   devuelve 404 (el secreto nunca se commitea).
 5. Solo los documentos `approved` aparecen en la línea de tiempo.
 
 ## Configuración

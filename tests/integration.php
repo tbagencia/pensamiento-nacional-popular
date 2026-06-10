@@ -13,6 +13,8 @@
 const TEST_HOST = '127.0.0.1:8765';
 const TEST_URL = 'http://' . TEST_HOST;
 const ADMIN_PASSWORD = 'testpass';
+const ADMIN_PATH = 'slug-de-prueba';
+const ADMIN_URL = '/panel/' . ADMIN_PATH;
 
 $root = dirname(__DIR__);
 $dbPath = sys_get_temp_dir() . '/timeline-test-' . getmypid() . '.sqlite';
@@ -34,6 +36,7 @@ $server = proc_open(
         'SMTP_PASS' => '',
         'MODERATOR_EMAILS' => 'mod@test.local',
         'ADMIN_PASSWORD_HASH' => password_hash(ADMIN_PASSWORD, PASSWORD_DEFAULT),
+        'ADMIN_PATH' => ADMIN_PATH,
     ])
 );
 
@@ -219,18 +222,23 @@ for ($i = 1; $i <= 5; $i++) {
 $res = request('POST', '/api/submit.php', ['json' => submission(['title' => 'Carga 6', 'email' => 'limite@test.local'])]);
 check($res['status'] === 429, 'sixth submission in a day is rejected', $res);
 
+section('Admin path obfuscation');
+check(request('GET', '/admin/index.php')['status'] === 404, 'guessable /admin URL is 404 when ADMIN_PATH is set');
+check(request('GET', '/panel/slug-equivocado')['status'] === 404, 'wrong panel slug is 404');
+check(request('GET', ADMIN_URL)['status'] === 200, 'secret panel URL responds');
+
 section('Admin moderation');
-$res = request('POST', '/admin/index.php', ['form' => ['action' => 'login', 'password' => 'wrong'], 'cookies' => 'admin']);
+$res = request('POST', ADMIN_URL, ['form' => ['action' => 'login', 'password' => 'wrong'], 'cookies' => 'admin']);
 check(str_contains($res['body'], 'Contraseña incorrecta'), 'wrong password is rejected');
 
-$res = request('POST', '/admin/index.php', ['form' => ['action' => 'login', 'password' => ADMIN_PASSWORD], 'cookies' => 'admin']);
+$res = request('POST', ADMIN_URL, ['form' => ['action' => 'login', 'password' => ADMIN_PASSWORD], 'cookies' => 'admin']);
 check(str_contains($res['body'], 'Moderación'), 'admin logs in');
 preg_match('/name="csrf" value="([a-f0-9]{32})"/', $res['body'], $m);
 $csrf = $m[1] ?? '';
 check($csrf !== '', 'CSRF token is present');
 
 $id = (int) db()->query("SELECT id FROM resources WHERE title = 'Segundo aporte misma sesión'")->fetchColumn();
-$res = request('POST', '/admin/index.php', [
+$res = request('POST', ADMIN_URL, [
     'form' => ['action' => 'approve', 'id' => $id, 'csrf' => $csrf],
     'headers' => ['X-Requested-With: fetch'],
     'cookies' => 'admin',
@@ -239,14 +247,14 @@ check(($res['json']['ok'] ?? false) && isset($res['json']['counts']), 'AJAX appr
 $status = db()->query("SELECT status FROM resources WHERE id = $id")->fetchColumn();
 check($status === 'approved', 'resource is approved');
 
-$res = request('POST', '/admin/index.php', [
+$res = request('POST', ADMIN_URL, [
     'form' => ['action' => 'approve', 'id' => $id, 'csrf' => 'bogus'],
     'headers' => ['X-Requested-With: fetch'],
     'cookies' => 'admin',
 ]);
 check($res['status'] === 403, 'invalid CSRF is rejected with 403');
 
-$res = request('POST', '/admin/index.php', [
+$res = request('POST', ADMIN_URL, [
     'form' => ['action' => 'delete', 'id' => $id, 'csrf' => $csrf],
     'headers' => ['X-Requested-With: fetch'],
     'cookies' => 'admin',

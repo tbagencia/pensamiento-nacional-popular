@@ -27,7 +27,8 @@ function notify_moderators(array $resource): void
     $title = htmlspecialchars($resource['title'], ENT_QUOTES, 'UTF-8');
     $author = htmlspecialchars($resource['author'], ENT_QUOTES, 'UTF-8');
     $year = (int) $resource['year'];
-    $adminUrl = base_url() . '/admin/';
+    $adminPath = env('ADMIN_PATH', '') ?? '';
+    $adminUrl = base_url() . ($adminPath !== '' ? '/panel/' . $adminPath : '/admin/');
     $subject = 'Nuevo documento para moderar - ' . $resource['title'];
 
     $body = <<<HTML
