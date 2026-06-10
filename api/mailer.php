@@ -70,14 +70,28 @@ function smtp_send(string $to, string $subject, string $html): bool
         return false;
     }
 
-    $socket = @stream_socket_client(
-        'tcp://' . SMTP_HOST . ':' . SMTP_PORT,
-        $errno,
-        $errstr,
-        10
-    );
+    $encryption = strtolower(env('SMTP_ENCRYPTION', 'tls'));
+    $useImplicitTLS = in_array($encryption, ['ssl', 'ssltls', 'tls/ssl']);
+
+    // Port 465 typically requires implicit TLS from the start.
+    // Port 587 uses STARTTLS. Port 25 is unencrypted (not recommended).
+    $context = stream_context_create([
+        'ssl' => [
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+            'allow_self_signed' => true,
+        ],
+    ]);
+
+    if ($useImplicitTLS) {
+        $address = 'tls://' . SMTP_HOST . ':' . SMTP_PORT;
+    } else {
+        $address = 'tcp://' . SMTP_HOST . ':' . SMTP_PORT;
+    }
+
+    $socket = @stream_socket_client($address, $errno, $errstr, 10, STREAM_CLIENT_CONNECT, $context);
     if (!$socket) {
-        error_log("[mailer] SMTP connection failed: $errstr ($errno)");
+        error_log("[mailer] SMTP connection failed: $errstr ($errno) [address=$address]");
         return false;
     }
     stream_set_timeout($socket, 10);
@@ -86,11 +100,16 @@ function smtp_send(string $to, string $subject, string $html): bool
         smtp_expect($socket, 220);
         smtp_command($socket, 'EHLO ' . (parse_url(base_url(), PHP_URL_HOST) ?: 'localhost'), 250);
 
-        smtp_command($socket, 'STARTTLS', 220);
-        if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
-            throw new RuntimeException('TLS negotiation failed');
+        // Only do STARTTLS if not already using implicit TLS
+        if (!$useImplicitTLS && $encryption !== 'none') {
+            $starttlsResponse = smtp_command_raw($socket, 'STARTTLS', 220);
+            if (preg_match('/^220/', $starttlsResponse)) {
+                if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                    throw new RuntimeException('TLS negotiation failed');
+                }
+                smtp_command($socket, 'EHLO ' . (parse_url(base_url(), PHP_URL_HOST) ?: 'localhost'), 250);
+            }
         }
-        smtp_command($socket, 'EHLO ' . (parse_url(base_url(), PHP_URL_HOST) ?: 'localhost'), 250);
 
         smtp_command($socket, 'AUTH LOGIN', 334);
         smtp_command($socket, base64_encode(SMTP_USER), 334);
@@ -121,6 +140,29 @@ function smtp_send(string $to, string $subject, string $html): bool
     } finally {
         fclose($socket);
     }
+}
+
+/** Sends a raw SMTP command and returns the full response (for STARTTLS check). */
+function smtp_command_raw($socket, string $command, int $expectedCode): string
+{
+    fwrite($socket, $command . "\r\n");
+    $response = '';
+    do {
+        $line = fgets($socket, 1024);
+        if ($line === false) {
+            throw new RuntimeException("no reply after '$command'");
+        }
+        $response .= $line;
+        $more = ($line[3] ?? ' ') === '-';
+    } while ($more);
+
+    $code = (int) substr($response, 0, 3);
+    if ($code !== $expectedCode) {
+        $safeContext = str_starts_with($command, 'AUTH') || preg_match('/^[A-Za-z0-9+\/=]+$/', $command)
+            ? 'AUTH step' : $command;
+        throw new RuntimeException("expected $expectedCode after '$safeContext', got $code");
+    }
+    return $response;
 }
 
 /** Sends a command and asserts the expected reply code. */
