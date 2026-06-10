@@ -290,6 +290,10 @@ function setupScrollSpy() {
 				if (entry.isIntersecting) {
 					setActiveChip(entry.target.dataset.year);
 					syncUrl(entry.target.dataset.year);
+					for (const s of sections) {
+						if (s !== entry.target) delete s.dataset.current;
+					}
+					entry.target.dataset.current = "true";
 				}
 			}
 			// Above the first year section: highlight "Todos".

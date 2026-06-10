@@ -8,6 +8,12 @@
 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
+// A year-less /linea has nothing to show: send it home.
+if (preg_match('#^/linea/?$#', $path)) {
+    header('Location: /', true, 302);
+    return true;
+}
+
 if (preg_match('#^/linea/[0-9]{4}/?$#', $path)) {
     header('Content-Type: text/html; charset=utf-8');
     readfile(__DIR__ . '/index.html');

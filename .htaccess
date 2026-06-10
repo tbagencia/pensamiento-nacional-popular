@@ -21,6 +21,7 @@ RedirectMatch 404 ^/tests
 #   /validar/<token> -> email verification landing
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  RewriteRule ^linea/?$ / [R=302,L]
   RewriteRule ^linea/[0-9]{4}/?$ index.html [L]
   RewriteRule ^cargar(/[0-9]{4})?/?$ cargar.html [L]
   RewriteRule ^validar/([a-f0-9]{64})/?$ api/verify.php?token=$1 [L]
