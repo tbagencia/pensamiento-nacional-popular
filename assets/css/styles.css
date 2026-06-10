@@ -606,11 +606,12 @@ a {
 	color: var(--brand);
 }
 
-/* Exception: the active filter */
+/* Exception: the active filter fills with its own border color,
+   mirroring the active year chip. */
 .type-pill[aria-pressed="true"] {
-	background: var(--brand-deep);
-	border-color: var(--brand-deep);
-	color: var(--gold);
+	background: var(--muted);
+	border-color: var(--muted);
+	color: #fff;
 }
 
 /* ---------- Block: timeline ---------- */
