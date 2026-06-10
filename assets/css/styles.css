@@ -549,6 +549,11 @@ input:focus, select:focus, textarea:focus {
 
 .admin-header-actions { display: flex; gap: var(--space-2xs); align-items: center; }
 
+.admin-header .btn {
+  padding: var(--space-3xs) var(--space-xs);
+  font-size: var(--text--1);
+}
+
 .admin-header .btn-ghost {
   color: #fff;
   border-color: rgba(255, 255, 255, 0.45);
@@ -617,6 +622,8 @@ input:focus, select:focus, textarea:focus {
   border-block-start: 1px solid var(--line);
   font-size: var(--text--1);
   color: var(--muted);
+  /* Land below the sticky tabs when reached via the #moderadores anchor. */
+  scroll-margin-block-start: var(--space-2xl);
 }
 
 .admin-foot p { margin-block: var(--space-3xs); }

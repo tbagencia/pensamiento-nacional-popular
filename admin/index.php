@@ -9,12 +9,6 @@ require_once __DIR__ . '/../api/db.php';
 
 $loginError = null;
 
-if (($_POST['action'] ?? '') === 'logout') {
-    session_destroy();
-    header('Location: index.php');
-    exit;
-}
-
 if (($_POST['action'] ?? '') === 'login') {
     if (password_verify($_POST['password'] ?? '', ADMIN_PASSWORD_HASH)) {
         session_regenerate_id(true);
@@ -121,11 +115,8 @@ function e(?string $s): string
   <header class="admin-header">
     <h1>Moderación</h1>
     <div class="admin-header-actions">
+      <a class="btn btn-ghost" href="#moderadores">Moderadores</a>
       <a class="btn btn-ghost" href="/" target="_blank" rel="noopener">Ver sitio</a>
-      <form method="post">
-        <input type="hidden" name="action" value="logout">
-        <button type="submit" class="btn btn-ghost">Salir</button>
-      </form>
     </div>
   </header>
 
@@ -175,7 +166,7 @@ function e(?string $s): string
       </article>
     <?php endforeach; ?>
 
-    <footer class="admin-foot">
+    <footer class="admin-foot" id="moderadores">
       <?php if (moderator_emails()): ?>
         <p>Notificaciones de moderación activas para:
           <strong><?= e(implode(', ', moderator_emails())) ?></strong></p>
