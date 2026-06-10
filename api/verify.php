@@ -42,7 +42,7 @@ $messages = [
     ],
     'invalid' => [
         'Enlace no válido',
-        'El enlace de validación no existe o expiró. Volvé a cargar el recurso si el problema persiste.',
+        'El enlace de validación no existe o expiró. Volvé a cargar el documento si el problema persiste.',
     ],
 ];
 [$heading, $detail] = $messages[$state];

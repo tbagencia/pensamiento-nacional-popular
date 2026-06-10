@@ -52,7 +52,7 @@ function renderTimeline(resources) {
   }
 
   if (byYear.size === 0) {
-    timelineEl.innerHTML = '<li class="empty">Todavía no hay recursos publicados.</li>';
+    timelineEl.innerHTML = '<li class="empty">Todavía no hay documentos publicados.</li>';
     return;
   }
 
@@ -83,7 +83,7 @@ function renderTimeline(resources) {
     const addLink = document.createElement('a');
     addLink.className = 'add-to-year';
     addLink.href = `/cargar/${year}`;
-    addLink.textContent = `+ Sumar un recurso a ${year}`;
+    addLink.textContent = `+ Sumar un documento de ${year}`;
     li.appendChild(addLink);
 
     timelineEl.appendChild(li);

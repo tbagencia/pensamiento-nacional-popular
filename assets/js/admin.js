@@ -9,9 +9,9 @@
 const toastHost = document.getElementById('toasts');
 
 const ACTION_MESSAGES = {
-  approve: 'Recurso aprobado',
-  reject: 'Recurso rechazado',
-  delete: 'Recurso eliminado',
+  approve: 'Documento aprobado',
+  reject: 'Documento rechazado',
+  delete: 'Documento eliminado',
 };
 
 const CONFIRM_RESET_MS = 3000;
@@ -81,7 +81,7 @@ function removeCard(card) {
     if (!list.querySelector('.admin-card')) {
       const empty = document.createElement('p');
       empty.className = 'empty';
-      empty.textContent = 'No hay recursos en esta categoría.';
+      empty.textContent = 'No hay documentos en esta categoría.';
       list.appendChild(empty);
     }
   }, 250);

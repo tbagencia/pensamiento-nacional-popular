@@ -133,7 +133,7 @@ function e(?string $s): string
 
   <main class="admin-list">
     <?php if (!$rows): ?>
-      <p class="empty">No hay recursos en esta categoría.</p>
+      <p class="empty">No hay documentos en esta categoría.</p>
     <?php endif; ?>
 
     <?php foreach ($rows as $r): ?>

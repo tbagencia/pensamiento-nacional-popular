@@ -28,14 +28,14 @@ function notify_moderators(array $resource): void
     $author = htmlspecialchars($resource['author'], ENT_QUOTES, 'UTF-8');
     $year = (int) $resource['year'];
     $adminUrl = base_url() . '/admin/';
-    $subject = 'Nuevo recurso para moderar - ' . $resource['title'];
+    $subject = 'Nuevo documento para moderar - ' . $resource['title'];
 
     $body = <<<HTML
     <!DOCTYPE html>
     <html lang="es">
     <body style="font-family: Arial, sans-serif; background: #f4f1ea; padding: 24px;">
       <div style="max-width: 520px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px;">
-        <h2 style="color: #1d3557; margin-top: 0;">Nuevo recurso pendiente</h2>
+        <h2 style="color: #1d3557; margin-top: 0;">Nuevo documento pendiente</h2>
         <p>Se validó una nueva carga y espera moderación:</p>
         <p style="background: #f7f3ea; border-radius: 6px; padding: 16px;">
           <strong>$title</strong><br>

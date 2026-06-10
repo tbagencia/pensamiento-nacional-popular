@@ -2,7 +2,7 @@
 
 Sitio mobile-first para navegar por año discursos, textos, cartas y manifiestos
 del pensamiento nacional y popular argentino. Cualquier persona puede cargar un
-recurso sin registrarse: solo necesita un email, que valida haciendo clic en el
+documento sin registrarse: solo necesita un email, que valida haciendo clic en el
 botón **VALIDAR** del correo que recibe. Un administrador modera todo el
 contenido antes de que se publique.
 
@@ -23,7 +23,7 @@ contenido antes de que se publique.
 ├── api/
 │   ├── config.php        # Configuración (contraseña admin, email, etc.)
 │   ├── db.php            # Conexión SQLite + esquema + seed inicial
-│   ├── resources.php     # GET recursos aprobados
+│   ├── resources.php     # GET documentos aprobados
 │   ├── submit.php        # POST nueva carga + envío del email VALIDAR
 │   └── verify.php        # Validación del email (destino del botón)
 ├── assets/css|js/        # Estilos y scripts
@@ -33,15 +33,15 @@ contenido antes de que se publique.
 ## Flujo de una carga
 
 1. El usuario completa el formulario en `cargar.html` (sin registro, solo email).
-2. El recurso se guarda con estado `pending_email` y recibe un correo con el botón **VALIDAR**.
+2. El documento se guarda con estado `pending_email` y recibe un correo con el botón **VALIDAR**.
 3. Al hacer clic, pasa a `pending_review`.
 4. Al validarse, los moderadores configurados en `MODERATOR_EMAILS` (lista
-   separada por comas en `.env`) reciben un email con el recurso y un enlace
+   separada por comas en `.env`) reciben un email con el documento y un enlace
    al panel.
 5. El administrador lo aprueba (`approved`), lo rechaza (`rejected`) o lo
    elimina desde `/admin/` — sin recargar la página, con notificaciones en
    pantalla y confirmación en dos pasos para eliminar.
-5. Solo los recursos `approved` aparecen en la línea de tiempo.
+5. Solo los documentos `approved` aparecen en la línea de tiempo.
 
 ## Configuración
 
