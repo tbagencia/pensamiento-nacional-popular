@@ -26,6 +26,12 @@ if (preg_match('#^/validar/([a-f0-9]{64})/?$#', $path, $m)) {
     return true;
 }
 
+if (preg_match('#^/documento/([0-9]+)/?$#', $path, $m)) {
+    $_GET['id'] = $m[1];
+    require __DIR__ . '/api/documento.php';
+    return true;
+}
+
 // The built-in server falls back to index.html for unknown extensionless
 // URIs; return a real 404 instead so dev matches production (Apache).
 if ($path !== '/' && !str_contains(basename($path), '.') && !is_dir(__DIR__ . $path)) {

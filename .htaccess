@@ -24,4 +24,5 @@ RedirectMatch 404 ^/tests
   RewriteRule ^linea/[0-9]{4}/?$ index.html [L]
   RewriteRule ^cargar(/[0-9]{4})?/?$ cargar.html [L]
   RewriteRule ^validar/([a-f0-9]{64})/?$ api/verify.php?token=$1 [L]
+  RewriteRule ^documento/([0-9]+)/?$ api/documento.php?id=$1 [L]
 </IfModule>

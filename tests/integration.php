@@ -147,6 +147,14 @@ check(request('GET', '/linea/1945')['status'] === 200, 'year URL responds');
 check(request('GET', '/cargar/1945')['status'] === 200, 'prefilled form URL responds');
 check(request('GET', '/linea/abcd')['status'] === 404, 'invalid year URL is 404');
 
+section('Document share landing');
+$res = request('GET', '/documento/1');
+check($res['status'] === 200, 'document landing responds 200');
+check(str_contains($res['body'], 'og:title'), 'landing carries Open Graph tags');
+check(str_contains($res['body'], 'Plan de Operaciones'), 'OG title quotes the document', $res['body']);
+check(str_contains($res['body'], '/linea/1810#doc-1'), 'landing redirects to the timeline card');
+check(request('GET', '/documento/99999')['status'] === 302, 'unknown document redirects home');
+
 section('Submission validation');
 $res = request('POST', '/api/submit.php', ['json' => ['title' => '', 'email' => 'nope'], 'cookies' => 'visitor']);
 check($res['status'] === 422, 'invalid submission is rejected with 422');
