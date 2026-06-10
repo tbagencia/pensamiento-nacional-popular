@@ -1,0 +1,9 @@
+# Secrets
+.env
+
+# Database
+data/*.sqlite
+data/*.sqlite-*
+
+# OS
+.DS_Store

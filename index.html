@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Línea de Tiempo del Pensamiento Nacional y Popular Argentino</title>
+  <meta name="description" content="Recorré por año los discursos, textos y manifiestos del pensamiento nacional y popular argentino. Un archivo colaborativo y abierto.">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <h1>Línea de Tiempo del<br><span>Pensamiento Nacional y Popular</span><br>Argentino</h1>
+  <p class="tagline">Discursos, textos y manifiestos que construyeron una identidad. Un archivo colaborativo, abierto a todos.</p>
+  <a href="cargar.html" class="btn btn-accent">+ Cargar un recurso</a>
+</header>
+
+<nav class="year-nav" aria-label="Navegación por año">
+  <button type="button" class="year-chip" data-year="all" aria-current="location">Todos</button>
+  <!-- Year chips rendered by app.js -->
+</nav>
+
+<main class="center">
+  <p id="status" class="status" role="status">Cargando la línea de tiempo…</p>
+  <ol id="timeline" class="timeline"></ol>
+</main>
+
+<button type="button" id="to-top" class="to-top" data-state="hidden" aria-label="Volver arriba">&uarr;</button>
+
+<footer class="site-footer">
+  <p>Archivo colaborativo del pensamiento nacional y popular argentino.</p>
+  <p><a href="cargar.html">Cargar un recurso</a> · <a href="admin/">Administración</a></p>
+</footer>
+
+<script src="assets/js/app.js"></script>
+</body>
+</html>

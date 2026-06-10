@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cargar un recurso · Línea de Tiempo del Pensamiento Nacional y Popular Argentino</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+<header class="site-header site-header-small">
+  <a class="back-link" href="index.html">&larr; Volver a la línea de tiempo</a>
+  <h1>Cargar un recurso</h1>
+  <p class="tagline">Sumá un discurso, texto, carta o manifiesto a la línea de tiempo del pensamiento nacional y popular argentino.</p>
+</header>
+
+<main class="[ form-page ] [ center ]">
+  <form id="submit-form" class="card" novalidate>
+    <div class="field">
+      <label for="title">Título *</label>
+      <input type="text" id="title" name="title" maxlength="200" required
+             placeholder="Ej: Discurso del 17 de octubre">
+      <p class="field-error" data-for="title"></p>
+    </div>
+
+    <div class="field">
+      <label for="author">Autor o autora *</label>
+      <input type="text" id="author" name="author" maxlength="120" required
+             placeholder="Ej: Juan Domingo Perón">
+      <p class="field-error" data-for="author"></p>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="year">Año *</label>
+        <input type="number" id="year" name="year" min="1800" max="2099" required
+               placeholder="1945">
+        <p class="field-error" data-for="year"></p>
+      </div>
+
+      <div class="field">
+        <label for="type">Tipo *</label>
+        <select id="type" name="type" required>
+          <option value="discurso">Discurso</option>
+          <option value="texto">Texto</option>
+          <option value="carta">Carta</option>
+          <option value="manifiesto">Manifiesto</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="excerpt">Descripción o extracto *</label>
+      <textarea id="excerpt" name="excerpt" rows="6" maxlength="2000" required
+                placeholder="Contexto histórico, importancia del documento o un extracto breve."></textarea>
+      <p class="field-error" data-for="excerpt"></p>
+    </div>
+
+    <div class="field">
+      <label for="source_url">Enlace a la fuente (opcional)</label>
+      <input type="url" id="source_url" name="source_url"
+             placeholder="https://...">
+      <p class="field-error" data-for="source_url"></p>
+    </div>
+
+    <div class="field">
+      <label for="email">Tu email *</label>
+      <input type="email" id="email" name="email" required
+             placeholder="tu@email.com">
+      <p class="field-hint">Solo lo usamos para validar la carga. No se publica.</p>
+      <p class="field-error" data-for="email"></p>
+    </div>
+
+    <!-- Honeypot field: hidden from humans, bots tend to fill it -->
+    <div class="hp-field" aria-hidden="true">
+      <label for="website">Sitio web</label>
+      <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Enviar</button>
+    <p class="field-error" data-for="general"></p>
+  </form>
+
+  <div id="success" class="card success-card" hidden>
+    <h2>¡Carga recibida!</h2>
+    <p>Te enviamos un email a <strong id="success-email"></strong>.</p>
+    <p>Para terminar de confirmar la carga, abrí el email y hacé clic en el botón <strong>VALIDAR</strong>. Después, un moderador revisará el contenido antes de publicarlo.</p>
+    <p id="dev-link" hidden></p>
+    <a href="index.html" class="btn btn-primary">Volver a la línea de tiempo</a>
+  </div>
+</main>
+
+<script src="assets/js/submit.js"></script>
+</body>
+</html>
