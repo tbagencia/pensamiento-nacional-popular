@@ -48,14 +48,14 @@ $messages = [
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/styles.css">
 </head>
 <body>
   <main class="verify-page">
     <div class="card verify-card <?= $state === 'verified' ? 'verify-ok' : '' ?>">
       <h1><?= htmlspecialchars($heading) ?></h1>
       <p><?= htmlspecialchars($detail) ?></p>
-      <a class="btn btn-primary" href="../index.html">Ir a la línea de tiempo</a>
+      <a class="btn btn-primary" href="/">Ir a la línea de tiempo</a>
     </div>
   </main>
 </body>

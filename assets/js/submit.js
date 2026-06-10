@@ -7,6 +7,14 @@ const form = document.getElementById('submit-form');
 const successCard = document.getElementById('success');
 const submitBtn = document.getElementById('submit-btn');
 
+// Pre-fill the year when arriving from a timeline section
+// (/cargar/1945, with ?year=1945 as fallback).
+const pathYear = location.pathname.match(/^\/cargar\/(\d{4})\/?$/)?.[1];
+const yearParam = Number(pathYear ?? new URLSearchParams(location.search).get('year'));
+if (Number.isInteger(yearParam) && yearParam >= 1800 && yearParam <= new Date().getFullYear()) {
+  form.elements.year.value = yearParam;
+}
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   clearErrors();
@@ -19,7 +27,7 @@ form.addEventListener('submit', async (e) => {
   const payload = Object.fromEntries(new FormData(form).entries());
 
   try {
-    const res = await fetch('api/submit.php', {
+    const res = await fetch('/api/submit.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

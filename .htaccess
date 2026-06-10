@@ -12,3 +12,15 @@
 
 # Hide git metadata and docs if the repo is deployed as-is.
 RedirectMatch 404 /\.git
+
+# Friendly URLs (assumes deployment at the domain root).
+#   /linea/1945  -> timeline positioned at that year
+#   /cargar      -> submission form
+#   /cargar/1945 -> submission form with the year pre-filled
+#   /validar/<token> -> email verification landing
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^linea/[0-9]{4}/?$ index.html [L]
+  RewriteRule ^cargar(/[0-9]{4})?/?$ cargar.html [L]
+  RewriteRule ^validar/([a-f0-9]{64})/?$ api/verify.php?token=$1 [L]
+</IfModule>

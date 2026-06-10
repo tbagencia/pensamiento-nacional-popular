@@ -12,13 +12,14 @@ const yearNav = document.querySelector('.year-nav');
 const toTopBtn = document.getElementById('to-top');
 
 const EXCERPT_COLLAPSE_LENGTH = 320;
+const YEAR_PATH = /^\/linea\/(\d{4})\/?$/;
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 init();
 
 async function init() {
   try {
-    const res = await fetch('api/resources.php');
+    const res = await fetch('/api/resources.php');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const { resources } = await res.json();
 
@@ -29,7 +30,9 @@ async function init() {
     setupCardReveal();
     setupReadMore();
     setupToTop();
+    setupHistory();
     statusEl.hidden = true;
+    goToYearFromUrl(false);
   } catch (err) {
     statusEl.textContent = 'No se pudo cargar la línea de tiempo. Intente nuevamente más tarde.';
     console.error('[timeline]', err);
@@ -73,6 +76,13 @@ function renderTimeline(resources) {
           : ''}`;
       li.appendChild(card);
     }
+
+    const addLink = document.createElement('a');
+    addLink.className = 'add-to-year';
+    addLink.href = `/cargar/${year}`;
+    addLink.textContent = `+ Sumar un recurso a ${year}`;
+    li.appendChild(addLink);
+
     timelineEl.appendChild(li);
   }
 }
@@ -93,16 +103,42 @@ function buildYearNav(resources) {
     const chip = e.target.closest('.year-chip');
     if (!chip) return;
 
-    setActiveChip(chip.dataset.year);
-    const behavior = prefersReducedMotion.matches ? 'auto' : 'smooth';
-
-    if (chip.dataset.year === 'all') {
-      window.scrollTo({ top: 0, behavior });
-      return;
-    }
-    document.getElementById(`year-${chip.dataset.year}`)
-      ?.scrollIntoView({ behavior, block: 'start' });
+    const year = chip.dataset.year;
+    history.pushState(null, '', year === 'all' ? '/' : `/linea/${year}`);
+    scrollToYear(year, prefersReducedMotion.matches ? 'auto' : 'smooth');
   });
+}
+
+function scrollToYear(year, behavior) {
+  setActiveChip(year);
+  if (year === 'all') {
+    window.scrollTo({ top: 0, behavior });
+    return;
+  }
+  document.getElementById(`year-${year}`)?.scrollIntoView({ behavior, block: 'start' });
+}
+
+/* ---------- Friendly URLs (/linea/1945) ---------- */
+
+function goToYearFromUrl(smooth) {
+  const year = location.pathname.match(YEAR_PATH)?.[1];
+  if (year && document.getElementById(`year-${year}`)) {
+    scrollToYear(year, smooth && !prefersReducedMotion.matches ? 'smooth' : 'auto');
+  } else if (!year) {
+    scrollToYear('all', smooth && !prefersReducedMotion.matches ? 'smooth' : 'auto');
+  }
+}
+
+function setupHistory() {
+  window.addEventListener('popstate', () => goToYearFromUrl(true));
+}
+
+/** Mirrors the year being viewed into the address bar (shareable URLs). */
+function syncUrl(year) {
+  const target = year === 'all' ? '/' : `/linea/${year}`;
+  if (location.pathname !== target) {
+    history.replaceState(null, '', target);
+  }
 }
 
 /* ---------- Navigation interactivity ---------- */
@@ -131,11 +167,13 @@ function setupScrollSpy() {
       for (const entry of entries) {
         if (entry.isIntersecting) {
           setActiveChip(entry.target.dataset.year);
+          syncUrl(entry.target.dataset.year);
         }
       }
       // Above the first year section: highlight "Todos".
       if (window.scrollY < timelineEl.offsetTop - yearNav.offsetHeight) {
         setActiveChip('all');
+        syncUrl('all');
       }
     },
     { rootMargin: '-25% 0px -65% 0px' }

@@ -48,10 +48,22 @@ cp .env.example .env
 # editar .env: hash del admin, remitente y credenciales SMTP
 ```
 
+## URLs amigables
+
+- `/` — línea de tiempo
+- `/linea/1945` — línea de tiempo posicionada en ese año (navegar con los
+  chips actualiza la URL, así cada año es compartible)
+- `/cargar` y `/cargar/1945` — formulario de carga, con el año precargado
+- `/validar/<token>` — validación de email (destino del botón VALIDAR)
+
+En producción las resuelve el `.htaccess` (mod_rewrite); en local, `router.php`.
+El sitio asume deploy en la raíz del dominio; para una subcarpeta habría que
+ajustar las rutas absolutas y las reglas de rewrite.
+
 ## Probar en local
 
 ```bash
-php -S localhost:8000
+php -S localhost:8000 router.php
 ```
 
 Abrir <http://localhost:8000>. Con `DEV_MODE=true` en `.env`, el enlace de

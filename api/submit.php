@@ -73,7 +73,7 @@ $stmt = $pdo->prepare(
 );
 $stmt->execute([$title, $author, $year, $type, $excerpt, $sourceUrl ?: null, $email, $token]);
 
-$verifyUrl = base_url() . '/api/verify.php?token=' . $token;
+$verifyUrl = base_url() . '/validar/' . $token;
 $mailSent = send_verification_email($email, $title, $verifyUrl);
 
 $response = ['ok' => true, 'mail_sent' => $mailSent];
