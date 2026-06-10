@@ -534,6 +534,12 @@ a {
 	display: none;
 }
 
+/* Composition: boxless on mobile; on desktop it becomes the rail's
+   full-height grid cell so the sticky nav is clamped above the footer. */
+.year-nav-rail {
+	display: contents;
+}
+
 .year-chip {
 	flex: 0 0 auto;
 	position: relative;
@@ -1370,13 +1376,17 @@ input[readonly] {
 		inline-size: 100%;
 	}
 
-	.year-nav {
+	.year-nav-rail {
+		display: block;
 		grid-column: 1;
 		grid-row: 2;
-		justify-self: end;
-		align-self: start;
+	}
+
+	.year-nav {
 		position: sticky;
 		top: var(--space-m);
+		inline-size: fit-content;
+		margin-inline-start: auto;
 		margin-block-start: var(--space-m);
 		margin-inline-end: var(--space-l);
 		flex-direction: column;
