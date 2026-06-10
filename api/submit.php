@@ -68,14 +68,21 @@ if ((int) $stmt->fetchColumn() >= 5) {
 
 // An email already verified in this session skips re-validation:
 // the resource goes straight to moderation, no link is sent.
+// A moderator's own submission publishes directly, with no notification.
 if ($email === ($_SESSION['verified_email'] ?? null)) {
+    $isModerator = is_moderator_email($email);
     $stmt = $pdo->prepare(
         "INSERT INTO resources (title, author, year, type, excerpt, source_url, submitter_email, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_review')"
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
     );
-    $stmt->execute([$title, $author, $year, $type, $excerpt, $sourceUrl ?: null, $email]);
-    notify_moderators(['title' => $title, 'author' => $author, 'year' => $year]);
-    json_response(['ok' => true, 'already_verified' => true], 201);
+    $stmt->execute([
+        $title, $author, $year, $type, $excerpt, $sourceUrl ?: null, $email,
+        $isModerator ? 'approved' : 'pending_review',
+    ]);
+    if (!$isModerator) {
+        notify_moderators(['title' => $title, 'author' => $author, 'year' => $year]);
+    }
+    json_response(['ok' => true, 'already_verified' => true, 'published' => $isModerator], 201);
 }
 
 $token = bin2hex(random_bytes(32));

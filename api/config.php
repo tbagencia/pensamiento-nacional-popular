@@ -75,6 +75,16 @@ function moderator_emails(): array
     ));
 }
 
+/** Moderators' own submissions skip moderation and publish directly. */
+function is_moderator_email(string $email): bool
+{
+    return in_array(
+        mb_strtolower($email),
+        array_map('mb_strtolower', moderator_emails()),
+        true
+    );
+}
+
 /** Base URL of the site, auto-detected. */
 function base_url(): string
 {

@@ -18,10 +18,18 @@ if ($token !== '' && preg_match('/^[a-f0-9]{64}$/', $token)) {
 
     if ($resource) {
         if ($resource['status'] === 'pending_email') {
-            $pdo->prepare("UPDATE resources SET status = 'pending_review' WHERE id = ?")
-                ->execute([$resource['id']]);
-            $state = 'verified';
-            notify_moderators($resource);
+            // A moderator validating their own submission publishes it
+            // directly; nobody needs to moderate the moderator.
+            if (is_moderator_email($resource['submitter_email'])) {
+                $pdo->prepare("UPDATE resources SET status = 'approved' WHERE id = ?")
+                    ->execute([$resource['id']]);
+                $state = 'published';
+            } else {
+                $pdo->prepare("UPDATE resources SET status = 'pending_review' WHERE id = ?")
+                    ->execute([$resource['id']]);
+                $state = 'verified';
+                notify_moderators($resource);
+            }
         } else {
             $state = 'already';
         }
@@ -35,6 +43,10 @@ $messages = [
     'verified' => [
         'Email validado',
         'Tu carga quedó confirmada. Ahora será revisada por un moderador y, si es aprobada, aparecerá en la línea de tiempo.',
+    ],
+    'published' => [
+        'Documento publicado',
+        'Tu email de moderación quedó validado y el documento ya está publicado en la línea de tiempo.',
     ],
     'already' => [
         'Este aporte ya fue validado',

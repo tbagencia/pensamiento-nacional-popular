@@ -217,6 +217,26 @@ check(
     $res['json']
 );
 
+section('Moderator submissions skip moderation');
+$res = request('POST', '/api/submit.php', [
+    'json' => submission(['title' => 'Aporte de moderador', 'email' => 'mod@test.local']),
+    'cookies' => 'moderator',
+]);
+$verifyUrl = $res['json']['verify_url'] ?? '';
+check(is_string($verifyUrl) && $verifyUrl !== '', 'moderator still validates the email first', $res['json']);
+$res = request('GET', $verifyUrl, ['cookies' => 'moderator']);
+check(str_contains($res['body'], 'Documento publicado'), 'verification page reports direct publication');
+$status = db()->query("SELECT status FROM resources WHERE title = 'Aporte de moderador'")->fetchColumn();
+check($status === 'approved', 'validated moderator submission is published');
+
+$res = request('POST', '/api/submit.php', [
+    'json' => submission(['title' => 'Segundo aporte de moderador', 'email' => 'mod@test.local']),
+    'cookies' => 'moderator',
+]);
+check(($res['json']['published'] ?? false) === true, 'moderator session publishes directly', $res['json']);
+$status = db()->query("SELECT status FROM resources WHERE title = 'Segundo aporte de moderador'")->fetchColumn();
+check($status === 'approved', 'session-skip moderator submission is published');
+
 section('Daily rate limit');
 for ($i = 1; $i <= 5; $i++) {
     request('POST', '/api/submit.php', ['json' => submission(['title' => "Carga $i", 'email' => 'limite@test.local'])]);

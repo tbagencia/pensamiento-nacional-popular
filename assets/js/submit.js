@@ -61,9 +61,12 @@ form.addEventListener('submit', async (e) => {
 
     if (res.ok && data.ok) {
       if (data.already_verified) {
-        // No validation email this time: straight to moderation.
+        // No validation email this time: straight to moderation, or
+        // already published when the submitter is a moderator.
         document.getElementById('success-mail-flow').hidden = true;
-        document.getElementById('success-direct').hidden = false;
+        document.getElementById(
+          data.published ? 'success-published' : 'success-direct',
+        ).hidden = false;
       } else {
         document.getElementById('success-email').textContent = payload.email;
 
