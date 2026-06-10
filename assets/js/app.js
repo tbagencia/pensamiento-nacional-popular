@@ -14,6 +14,9 @@ const toTopBtn = document.getElementById('to-top');
 const EXCERPT_COLLAPSE_LENGTH = 320;
 const YEAR_PATH = /^\/linea\/(\d{4})\/?$/;
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+// Must match the structural breakpoint in styles.css where the year nav
+// becomes a vertical rail in the left gutter.
+const desktopRail = window.matchMedia('(min-width: 1150px)');
 
 init();
 
@@ -147,11 +150,20 @@ function setActiveChip(year) {
   for (const chip of yearNav.querySelectorAll('.year-chip')) {
     if (chip.dataset.year === String(year)) {
       chip.setAttribute('aria-current', 'location');
-      // Keep the active chip centered in the scrollable nav bar.
-      yearNav.scrollTo({
-        left: chip.offsetLeft - yearNav.clientWidth / 2 + chip.offsetWidth / 2,
-        behavior: prefersReducedMotion.matches ? 'auto' : 'smooth',
-      });
+      // Keep the active chip centered in the scrollable nav
+      // (vertical rail on desktop, horizontal bar on mobile).
+      const behavior = prefersReducedMotion.matches ? 'auto' : 'smooth';
+      if (desktopRail.matches) {
+        yearNav.scrollTo({
+          top: chip.offsetTop - yearNav.clientHeight / 2 + chip.offsetHeight / 2,
+          behavior,
+        });
+      } else {
+        yearNav.scrollTo({
+          left: chip.offsetLeft - yearNav.clientWidth / 2 + chip.offsetWidth / 2,
+          behavior,
+        });
+      }
     } else {
       chip.removeAttribute('aria-current');
     }
@@ -182,15 +194,19 @@ function setupScrollSpy() {
 }
 
 function syncNavHeight() {
-  const apply = () =>
-    document.documentElement.style.setProperty('--nav-h', `${yearNav.offsetHeight}px`);
+  const apply = () => {
+    // On desktop the nav is a side rail and takes no top space.
+    const navHeight = desktopRail.matches ? 0 : yearNav.offsetHeight;
+    document.documentElement.style.setProperty('--nav-h', `${navHeight}px`);
+
+    // Year sections stop below the sticky nav when scrolled into view.
+    for (const section of timelineEl.querySelectorAll('.timeline-year')) {
+      section.style.scrollMarginTop = `${navHeight + 8}px`;
+    }
+  };
   apply();
   window.addEventListener('resize', apply);
-
-  // Year sections stop below the sticky nav when scrolled into view.
-  for (const section of timelineEl.querySelectorAll('.timeline-year')) {
-    section.style.scrollMarginTop = `${yearNav.offsetHeight + 8}px`;
-  }
+  desktopRail.addEventListener('change', apply);
 }
 
 /* ---------- Card reveal ---------- */

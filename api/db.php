@@ -43,7 +43,19 @@ function db(): PDO
 /** Seed with public-domain historical entries so the timeline is not empty. */
 function seed(PDO $pdo): void
 {
-    $entries = [
+    $stmt = $pdo->prepare(
+        "INSERT INTO resources (title, author, year, type, excerpt, source_url, submitter_email, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'seed@sitio', 'approved')"
+    );
+    foreach (seed_entries() as [$year, $author, $type, $title, $excerpt, $url]) {
+        $stmt->execute([$title, $author, $year, $type, $excerpt, $url]);
+    }
+}
+
+/** Historical entries: [year, author, type, title, excerpt, source_url]. */
+function seed_entries(): array
+{
+    return [
         [1810, 'Mariano Moreno', 'texto', 'Plan de Operaciones',
          'Documento atribuido a Mariano Moreno con el programa económico y político de la Revolución de Mayo: industrialización, comercio dirigido por el Estado y defensa de la soberanía.',
          'https://es.wikisource.org/wiki/Plan_de_operaciones'],
@@ -83,13 +95,65 @@ function seed(PDO $pdo): void
         [2003, 'Néstor Kirchner', 'discurso', 'Discurso de asunción presidencial',
          'Ante la Asamblea Legislativa, Kirchner define su pertenencia: "Formo parte de una generación diezmada, castigada con dolorosas ausencias; me sumé a las luchas políticas creyendo en valores y convicciones a las que no pienso dejar en la puerta de entrada de la Casa Rosada".',
          null],
+        [1834, 'Juan Manuel de Rosas', 'carta', 'Carta de la Hacienda de Figueroa',
+         'Carta a Facundo Quiroga donde Rosas expone su concepción del orden federal: organizar primero las provincias antes que dictar una constitución, en defensa del federalismo frente al centralismo porteño.',
+         null],
+        [1872, 'José Hernández', 'texto', 'El gaucho Martín Fierro',
+         'La primera parte del poema nacional: denuncia de la leva, el fortín y el despojo del gaucho por el Estado liberal. La voz de los excluidos del proyecto agroexportador.',
+         'https://es.wikisource.org/wiki/El_Gaucho_Mart%C3%ADn_Fierro'],
+        [1904, 'Juan Bialet Massé', 'texto', 'Informe sobre el estado de las clases obreras',
+         'Encargado por el ministro Joaquín V. González, el informe recorre el interior del país y documenta las condiciones de vida y trabajo de obreros y peones. Pieza fundante de la cuestión social argentina.',
+         null],
+        [1910, 'Manuel Ugarte', 'texto', 'El porvenir de la América Latina',
+         'Ugarte plantea la unidad latinoamericana frente al avance del imperialismo: la patria grande como destino común de las repúblicas hispanoamericanas.',
+         null],
+        [1912, 'Roque Sáenz Peña', 'discurso', '"Quiera el pueblo votar"',
+         'Mensaje en defensa de la ley de sufragio secreto, universal y obligatorio que termina con el fraude electoral del régimen conservador y abre paso a la democracia de masas.',
+         null],
+        [1918, 'Deodoro Roca y la Federación Universitaria de Córdoba', 'manifiesto', 'Manifiesto Liminar de la Reforma Universitaria',
+         '"Los dolores que quedan son las libertades que faltan": la juventud cordobesa sacude la universidad clerical y elitista, y proyecta la reforma a toda América Latina.',
+         'https://es.wikisource.org/wiki/Manifiesto_liminar_de_la_Reforma_Universitaria'],
+        [1934, 'Arturo Jauretche', 'texto', 'El Paso de los Libres',
+         'Poema gauchesco que narra el levantamiento radical de 1933 contra el gobierno surgido del fraude. Primera obra de Jauretche, con prólogo de Jorge Luis Borges.',
+         null],
+        [1936, 'Enrique Mosconi', 'texto', 'El petróleo argentino',
+         'El general que dirigió YPF expone su doctrina: el petróleo como recurso estratégico de la Nación, contra los trusts extranjeros y por la soberanía energética.',
+         null],
+        [1940, 'Raúl Scalabrini Ortiz', 'texto', 'Política británica en el Río de la Plata',
+         'Investigación que desnuda los mecanismos de la dependencia: ferrocarriles, frigoríficos y finanzas. Obra central del revisionismo económico nacional.',
+         null],
+        [1946, 'Juan Domingo Perón', 'discurso', 'Discurso de asunción presidencial',
+         'Perón asume su primer gobierno y formula el programa de la nueva Argentina: justicia social, independencia económica y soberanía política.',
+         null],
+        [1948, 'Leopoldo Marechal', 'texto', 'Adán Buenosayres',
+         'Novela total de Buenos Aires. Marechal, el gran escritor del peronismo, funde vanguardia y tradición criolla; ignorada por la crítica liberal durante décadas, hoy es un clásico.',
+         null],
+        [1951, 'Eva Perón', 'texto', 'La razón de mi vida',
+         'Autobiografía doctrinaria de Evita: su encuentro con Perón, los descamisados, la justicia social y el papel de la mujer en la política argentina.',
+         null],
+        [1957, 'Rodolfo Walsh', 'texto', 'Operación Masacre',
+         'Investigación sobre los fusilamientos de José León Suárez tras el levantamiento de Valle. Funda el periodismo de investigación y la no ficción en castellano, antes que Capote.',
+         null],
+        [1960, 'Juan José Hernández Arregui', 'texto', 'La formación de la conciencia nacional',
+         'Estudio del desarrollo del pensamiento nacional frente a la cultura de la dependencia. Obra clave de la izquierda nacional argentina.',
+         null],
+        [1969, 'Agustín Tosco', 'discurso', 'Proclama del Cordobazo',
+         'El dirigente de Luz y Fuerza convoca a la huelga activa del 29 de mayo: obreros y estudiantes unidos toman las calles de Córdoba contra la dictadura de Onganía.',
+         null],
+        [1973, 'Héctor J. Cámpora', 'discurso', 'Discurso de asunción presidencial',
+         'Tras 18 años de proscripción del peronismo, "El Tío" asume con el compromiso del gobierno popular: "La sangre derramada no será negociada".',
+         null],
+        [1974, 'Juan Domingo Perón', 'texto', 'Modelo argentino para el proyecto nacional',
+         'Testamento político de Perón, leído ante el Congreso: la comunidad organizada, la unidad latinoamericana y el universalismo como horizonte de la Nación.',
+         null],
+        [1977, 'Rodolfo Walsh', 'carta', 'Carta Abierta de un Escritor a la Junta Militar',
+         'A un año del golpe, Walsh documenta el terror y el plan económico de la dictadura. La envió por correo el 24 de marzo de 1977; fue secuestrado al día siguiente.',
+         'https://es.wikisource.org/wiki/Carta_Abierta_de_un_Escritor_a_la_Junta_Militar'],
+        [2005, 'Néstor Kirchner', 'discurso', 'Discurso contra el ALCA en Mar del Plata',
+         'En la IV Cumbre de las Américas, Argentina, Brasil y Venezuela rechazan el Área de Libre Comercio de las Américas. Hito de la integración regional sudamericana.',
+         null],
+        [2010, 'Cristina Fernández de Kirchner', 'discurso', 'Discurso del Bicentenario',
+         'En los festejos del Bicentenario de la Revolución de Mayo, ante una multitud, CFK reivindica la historia de las luchas populares argentinas y la patria grande latinoamericana.',
+         null],
     ];
-
-    $stmt = $pdo->prepare(
-        "INSERT INTO resources (title, author, year, type, excerpt, source_url, submitter_email, status)
-         VALUES (?, ?, ?, ?, ?, ?, 'seed@sitio', 'approved')"
-    );
-    foreach ($entries as [$year, $author, $type, $title, $excerpt, $url]) {
-        $stmt->execute([$title, $author, $year, $type, $excerpt, $url]);
-    }
 }

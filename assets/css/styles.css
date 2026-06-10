@@ -603,10 +603,54 @@ input:focus, select:focus, textarea:focus {
   border-block-start: 1px solid var(--line);
 }
 
-/* ---------- Structural breakpoint (layout only) ---------- */
+/* ---------- Structural breakpoints (layout only) ---------- */
 
 @media (min-width: 640px) {
   .timeline { padding-inline-start: var(--space-xl); }
   .timeline::before { left: var(--space-xs); }
   .timeline-year::before { left: calc(-1 * var(--space-xl) + var(--space-xs) - 4px); }
+}
+
+/* Desktop: the year nav becomes a sticky vertical rail in the left gutter.
+   It lives in the content area (below the header, above the footer), so it
+   follows the scroll without ever overlapping either of them. */
+@media (min-width: 1150px) {
+  body:has(.year-nav) {
+    display: grid;
+    grid-template-columns: 1fr minmax(0, var(--container)) 1fr;
+  }
+
+  body:has(.year-nav) .site-header,
+  body:has(.year-nav) .site-footer {
+    grid-column: 1 / -1;
+  }
+
+  body:has(.year-nav) main.center {
+    grid-column: 2;
+    grid-row: 2;
+    inline-size: 100%;
+  }
+
+  .year-nav {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: end;
+    align-self: start;
+    position: sticky;
+    top: var(--space-m);
+    margin-block-start: var(--space-m);
+    margin-inline-end: var(--space-l);
+    flex-direction: column;
+    align-items: flex-start;
+    max-block-size: calc(100vh - var(--space-xl));
+    overflow-y: auto;
+    background: transparent;
+    backdrop-filter: none;
+    border: 0;
+    padding: var(--space-3xs);
+  }
+
+  .year-chip { background: var(--paper); }
+  .year-chip:hover { background: color-mix(in srgb, var(--sky) 30%, var(--paper)); }
+  .year-chip[aria-current='location'] { background: var(--brand); }
 }
