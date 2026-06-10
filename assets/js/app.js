@@ -49,12 +49,12 @@ async function init() {
 		setupYearNavClicks();
 		setupNavMetrics();
 		setupReadMore();
+		setupShare();
 		setupToTop();
-		setupCreditsPanel();
 		setupHistory();
 		renderAll();
 		statusEl.hidden = true;
-		goToYearFromUrl(false);
+		if (!goToDocFromUrl()) goToYearFromUrl(false);
 	} catch (err) {
 		statusEl.textContent =
 			"No se pudo cargar la línea de tiempo. Intente nuevamente más tarde.";
@@ -105,8 +105,12 @@ function renderTimeline(resources) {
 			const isLong = (item.excerpt ?? "").length > EXCERPT_COLLAPSE_LENGTH;
 			const card = document.createElement("article");
 			card.className = "card";
+			card.id = `doc-${item.id}`;
 			card.dataset.state = "hidden";
 			card.innerHTML = `
+        <button type="button" class="share-btn" aria-label="Compartir este documento" aria-expanded="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="10.49" x2="8.59" y2="6.51"/></svg>
+        </button>
         <span class="badge badge-type">${escapeHtml(item.type)}</span>
         <h3>${escapeHtml(item.title)}</h3>
         <p class="author">${escapeHtml(item.author)}</p>
@@ -379,39 +383,119 @@ function setupToTop() {
 	});
 }
 
-/* ---------- Credits panel ---------- */
+/* ---------- Share ---------- */
 
-function setupCreditsPanel() {
-	const panel = document.getElementById("credits-panel");
-	const btn = document.getElementById("credits-btn");
-	const closeBtn = document.getElementById("credits-close");
-	const overlay = document.getElementById("credits-overlay");
+function setupShare() {
+	timelineEl.addEventListener("click", (e) => {
+		const btn = e.target.closest(".share-btn");
+		if (btn) {
+			const card = btn.closest(".card");
+			const item = allResources.find((r) => `doc-${r.id}` === card.id);
+			if (item) shareDocument(item, btn, card);
+			return;
+		}
 
-	if (!panel || !btn) return;
-
-	const openPanel = () => {
-		panel.dataset.state = "open";
-		panel.setAttribute("aria-hidden", "false");
-		document.body.style.overflow = "hidden";
-		closeBtn?.focus();
-	};
-
-	const closePanel = () => {
-		panel.dataset.state = "";
-		panel.setAttribute("aria-hidden", "true");
-		document.body.style.overflow = "";
-		btn.focus();
-	};
-
-	btn.addEventListener("click", openPanel);
-	closeBtn?.addEventListener("click", closePanel);
-	overlay?.addEventListener("click", closePanel);
-
-	document.addEventListener("keydown", (e) => {
-		if (e.key === "Escape" && panel.dataset.state === "open") {
-			closePanel();
+		const option = e.target.closest(".share-option");
+		if (option) {
+			if (option.dataset.action === "copy") {
+				copyShareLink(option);
+			} else {
+				// Let the link open its new tab before tearing the menu down.
+				setTimeout(closeShareMenus, 0);
+			}
 		}
 	});
+
+	document.addEventListener("click", (e) => {
+		if (!e.target.closest(".share-btn") && !e.target.closest(".share-menu")) {
+			closeShareMenus();
+		}
+	});
+	document.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") closeShareMenus();
+	});
+}
+
+function shareDocument(item, btn, card) {
+	const url = `${location.origin}/linea/${item.year}#doc-${item.id}`;
+	const text = `«${item.title}» — ${item.author} (${item.year})`;
+
+	// Native share sheet where available (mostly mobile).
+	if (navigator.share) {
+		navigator.share({ title: item.title, text, url }).catch(() => {});
+		return;
+	}
+
+	const wasOpen = card.querySelector(".share-menu") !== null;
+	closeShareMenus();
+	if (!wasOpen) openShareMenu(btn, card, text, url);
+}
+
+function openShareMenu(btn, card, text, url) {
+	const menu = document.createElement("div");
+	menu.className = "share-menu";
+
+	const copy = document.createElement("button");
+	copy.type = "button";
+	copy.className = "share-option";
+	copy.dataset.action = "copy";
+	copy.dataset.url = url;
+	copy.textContent = "Copiar enlace";
+
+	const whatsapp = document.createElement("a");
+	whatsapp.className = "share-option";
+	whatsapp.href = `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`;
+	whatsapp.target = "_blank";
+	whatsapp.rel = "noopener noreferrer";
+	whatsapp.textContent = "WhatsApp";
+
+	const x = document.createElement("a");
+	x.className = "share-option";
+	x.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+	x.target = "_blank";
+	x.rel = "noopener noreferrer";
+	x.textContent = "Compartir en X";
+
+	menu.append(copy, whatsapp, x);
+	card.appendChild(menu);
+	btn.setAttribute("aria-expanded", "true");
+	copy.focus();
+}
+
+function copyShareLink(option) {
+	navigator.clipboard
+		?.writeText(option.dataset.url)
+		.then(() => {
+			option.textContent = "¡Enlace copiado!";
+			setTimeout(closeShareMenus, 900);
+		})
+		.catch(() => {});
+}
+
+function closeShareMenus() {
+	for (const menu of timelineEl.querySelectorAll(".share-menu")) menu.remove();
+	for (const b of timelineEl.querySelectorAll(
+		'.share-btn[aria-expanded="true"]',
+	)) {
+		b.setAttribute("aria-expanded", "false");
+	}
+}
+
+/** Scrolls to and highlights a card linked as /linea/{year}#doc-{id}. */
+function goToDocFromUrl() {
+	const id = location.hash.match(/^#doc-(\d+)$/)?.[1];
+	if (!id) return false;
+	const card = document.getElementById(`doc-${id}`);
+	if (!card) return false;
+
+	card.dataset.state = "visible";
+	card.scrollIntoView({
+		behavior: prefersReducedMotion.matches ? "auto" : "smooth",
+		block: "center",
+	});
+	card.dataset.highlight = "true";
+	setTimeout(() => delete card.dataset.highlight, 2600);
+	return true;
 }
 
 /* ---------- Helpers ---------- */

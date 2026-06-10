@@ -625,12 +625,81 @@ main.center {
 /* ---------- Block: card ---------- */
 
 .card {
+	position: relative;
 	background: var(--surface);
 	border: 1px solid rgba(38, 34, 28, 0.06);
 	border-radius: var(--radius);
 	box-shadow: var(--shadow-1);
 	padding: var(--space-m);
 	margin-block-end: var(--space-s);
+	transition: box-shadow 0.4s ease;
+}
+
+/* Deep-linked card (/linea/{year}#doc-{id}) pulses to identify itself. */
+.card[data-highlight="true"] {
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+
+/* ---------- Block: card share ---------- */
+
+.share-btn {
+	position: absolute;
+	top: var(--space-xs);
+	right: var(--space-xs);
+	display: grid;
+	place-items: center;
+	width: 2rem;
+	height: 2rem;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--muted);
+	cursor: pointer;
+	transition:
+		color 0.2s ease,
+		background 0.2s ease;
+}
+
+.share-btn:hover {
+	color: var(--brand);
+	background: color-mix(in srgb, var(--sky) 20%, #fff);
+}
+
+/* Keep the card title clear of the floating share button. */
+.card h3 {
+	padding-inline-end: var(--space-l);
+}
+
+.share-menu {
+	position: absolute;
+	top: calc(var(--space-xs) + 2rem + var(--space-3xs));
+	right: var(--space-xs);
+	z-index: 10;
+	display: grid;
+	min-inline-size: 10rem;
+	padding: var(--space-3xs);
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-2);
+}
+
+.share-option {
+	border: 0;
+	background: none;
+	padding: var(--space-2xs) var(--space-xs);
+	border-radius: calc(var(--radius) - 6px);
+	font-family: var(--font-ui);
+	font-size: var(--text--1);
+	color: var(--brand-deep);
+	text-align: start;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.share-option:hover {
+	background: color-mix(in srgb, var(--sky) 16%, #fff);
+	color: var(--brand);
 }
 
 .card h2,
