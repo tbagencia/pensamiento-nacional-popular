@@ -584,9 +584,10 @@ a {
 	padding: var(--space-s) var(--space-s) 0;
 }
 
+/* Same outline language as the year chips, in the secondary earth tone. */
 .type-pill {
-	border: 1px solid var(--line);
-	background: var(--surface);
+	border: 1px solid color-mix(in srgb, var(--muted) 50%, transparent);
+	background: transparent;
 	color: var(--muted);
 	border-radius: var(--radius-pill);
 	padding: var(--space-3xs) var(--space-xs);
@@ -1440,7 +1441,5 @@ input[readonly] {
 	.type-pill {
 		font-size: var(--text--2);
 		padding: 0.25em 0.7em;
-		background: transparent;
-		border-color: var(--line);
 	}
 }
