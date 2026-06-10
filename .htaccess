@@ -26,4 +26,6 @@ RedirectMatch 404 ^/tests
   RewriteRule ^cargar(/[0-9]{4})?/?$ cargar.html [L]
   RewriteRule ^validar/([a-f0-9]{64})/?$ api/verify.php?token=$1 [L]
   RewriteRule ^documento/([0-9]+)/?$ api/documento.php?id=$1 [L]
+  RewriteRule ^sitemap\.xml$ api/sitemap.php [L]
+  RewriteRule ^panel/([A-Za-z0-9-]+)/?$ admin/index.php [L]
 </IfModule>

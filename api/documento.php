@@ -52,6 +52,16 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="<?= $e($ogTitle) ?>">
   <meta name="twitter:description" content="<?= $e($ogDescription) ?>">
+  <script type="application/ld+json"><?= json_encode([
+      '@context' => 'https://schema.org',
+      '@type' => 'Article',
+      'headline' => $doc['title'],
+      'description' => $ogDescription,
+      'author' => ['@type' => 'Person', 'name' => $doc['author']],
+      'datePublished' => $doc['year'] . '-01-01',
+      'inLanguage' => 'es-AR',
+      'mainEntityOfPage' => $pageUrl,
+  ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
   <script>location.replace(<?= json_encode($target) ?>);</script>
   <noscript><meta http-equiv="refresh" content="0; url=<?= $e($target) ?>"></noscript>
 </head>

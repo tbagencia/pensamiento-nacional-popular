@@ -38,6 +38,16 @@ if (preg_match('#^/documento/([0-9]+)/?$#', $path, $m)) {
     return true;
 }
 
+if ($path === '/sitemap.xml') {
+    require __DIR__ . '/api/sitemap.php';
+    return true;
+}
+
+if (preg_match('#^/panel/[A-Za-z0-9-]+/?$#', $path)) {
+    require __DIR__ . '/admin/index.php';
+    return true;
+}
+
 // The built-in server falls back to index.html for unknown extensionless
 // URIs; return a real 404 instead so dev matches production (Apache).
 if ($path !== '/' && !str_contains(basename($path), '.') && !is_dir(__DIR__ . $path)) {

@@ -7,6 +7,10 @@
       Aportar un documento · Línea de Tiempo del Pensamiento Nacional y Popular
       Argentino
     </title>
+    <meta
+      name="description"
+      content="Sumá un discurso, una carta, un libro o un manifiesto al archivo colaborativo del pensamiento nacional y popular argentino."
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,6 +22,15 @@
   <body>
     <header class="site-header site-header-small">
       <a class="back-link" href="/">&larr; Volver a la línea de tiempo</a>
+      <button
+        type="button"
+        class="credits-link"
+        data-credits-trigger
+        aria-controls="credits-panel"
+        aria-expanded="false"
+      >
+        Acerca de
+      </button>
       <div class="[ center ]">
         <h1>Aportar un documento</h1>
         <p class="tagline">
@@ -171,16 +184,14 @@
       </div>
     </main>
 
-    <button
-      type="button"
-      id="credits-btn"
-      class="credits-btn"
-      aria-label="Créditos y tecnología"
+    <aside
+      id="credits-panel"
+      class="credits-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="credits-title"
+      aria-hidden="true"
     >
-      i
-    </button>
-
-    <aside id="credits-panel" class="credits-panel" aria-hidden="true">
       <div class="credits-overlay" id="credits-overlay"></div>
       <div class="credits-content">
         <button
@@ -201,10 +212,9 @@
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <h2>Créditos</h2>
+        <h2 id="credits-title">Acerca del proyecto</h2>
 
         <section>
-          <h3>Sobre el proyecto</h3>
           <p>
             Herramienta web interactiva para visualizar una línea de tiempo de
             autores, debates y eventos del pensamiento nacional y popular
