@@ -244,37 +244,42 @@ a {
 	font-size: var(--text-3);
 }
 
-/* ---------- Block: credits button ---------- */
+/* ---------- Block: credits link (anchored to the header, scrolls away) ---------- */
 
-.credits-btn {
-	position: fixed;
-	top: var(--space-m);
-	right: var(--space-m);
-	z-index: 40;
-	width: 2.5rem;
-	height: 2.5rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+.credits-link {
+	position: absolute;
+	top: var(--space-s);
+	right: var(--space-s);
+	padding: var(--space-3xs) var(--space-xs);
 	background: transparent;
 	border: 1.5px solid var(--gold);
-	border-radius: 50%;
+	border-radius: 999px;
 	color: var(--gold);
-	font-family: var(--font-display);
-	font-size: 1.25rem;
-	font-weight: 700;
-	font-style: italic;
+	font-family: var(--font-ui);
+	font-size: var(--text--2);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
 	cursor: pointer;
 	transition:
 		background 0.2s ease,
-		color 0.2s ease,
-		transform 0.2s var(--ease-out);
+		color 0.2s ease;
 }
 
-.credits-btn:hover {
+.credits-link:hover {
 	background: var(--gold);
 	color: var(--brand-deep);
-	transform: scale(1.05);
+}
+
+/* Utility: button that reads as an inline link */
+.link-button {
+	background: none;
+	border: 0;
+	padding: 0;
+	font: inherit;
+	color: var(--brand);
+	text-decoration: underline;
+	cursor: pointer;
 }
 
 /* ---------- Block: credits panel ---------- */

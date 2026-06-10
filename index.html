@@ -28,6 +28,15 @@
         archivo colaborativo, abierto a todos.
       </p>
       <a href="/cargar" class="btn btn-accent">+ Aportar documento</a>
+      <button
+        type="button"
+        class="credits-link"
+        data-credits-trigger
+        aria-controls="credits-panel"
+        aria-expanded="false"
+      >
+        Acerca de
+      </button>
     </header>
 
     <nav class="year-nav" aria-label="Navegación por año">
@@ -60,24 +69,31 @@
       &uarr;
     </button>
 
-    <button
-      type="button"
-      id="credits-btn"
-      class="credits-btn"
-      aria-label="Créditos y tecnología"
-    >
-      i
-    </button>
-
     <footer class="site-footer">
       <p>Archivo colaborativo del pensamiento nacional y popular argentino.</p>
       <p>
         <a href="/cargar">Aportar un documento</a> ·
-        <a href="/admin/">Administración</a>
+        <a href="/admin/">Administración</a> ·
+        <button
+          type="button"
+          class="link-button"
+          data-credits-trigger
+          aria-controls="credits-panel"
+          aria-expanded="false"
+        >
+          Acerca de
+        </button>
       </p>
     </footer>
 
-    <aside id="credits-panel" class="credits-panel" aria-hidden="true">
+    <aside
+      id="credits-panel"
+      class="credits-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="credits-title"
+      aria-hidden="true"
+    >
       <div class="credits-overlay" id="credits-overlay"></div>
       <div class="credits-content">
         <button
@@ -98,10 +114,9 @@
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <h2>Créditos</h2>
+        <h2 id="credits-title">Acerca del proyecto</h2>
 
         <section>
-          <h3>Sobre el proyecto</h3>
           <p>
             Herramienta web interactiva para visualizar una línea de tiempo de
             autores, debates y eventos del pensamiento nacional y popular
