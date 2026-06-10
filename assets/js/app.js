@@ -109,7 +109,7 @@ function renderTimeline(resources) {
 			card.dataset.state = "hidden";
 			card.innerHTML = `
         <button type="button" class="share-btn" aria-label="Compartir este documento" aria-expanded="false">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </button>
         <span class="badge badge-type">${escapeHtml(item.type)}</span>
         <h3>${escapeHtml(item.title)}</h3>
@@ -458,7 +458,7 @@ function openShareMenu(btn, card, text, url) {
 	menu.className = "share-menu";
 	menu.innerHTML = `
 		<button type="button" class="share-option" data-action="copy">
-			${SHARE_ICONS.link}<span>Copiar cita y enlace</span>
+			${SHARE_ICONS.link}<span>Copiar</span>
 		</button>
 		<hr class="share-divider" />
 		<a class="share-option" target="_blank" rel="noopener noreferrer"
