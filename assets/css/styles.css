@@ -1051,6 +1051,42 @@ main.center {
 	right: calc(var(--space-xs) + 2rem + var(--space-3xs));
 }
 
+/* Exception: hover/focus tooltip naming the action, from data-tip. */
+@media (hover: hover) {
+	.share-btn::after,
+	.source-btn::after {
+		content: attr(data-tip);
+		position: absolute;
+		inset-block-start: calc(100% + var(--space-3xs));
+		inset-inline-end: 0;
+		padding: var(--space-3xs) var(--space-2xs);
+		background: var(--brand-deep);
+		color: #fff;
+		font-family: var(--font-ui);
+		font-size: var(--text--2);
+		font-weight: 500;
+		white-space: nowrap;
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-1);
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.15s ease;
+	}
+
+	.share-btn:hover::after,
+	.source-btn:hover::after,
+	.share-btn:focus-visible::after,
+	.source-btn:focus-visible::after {
+		opacity: 1;
+		transition-delay: 0.35s;
+	}
+
+	/* The open share menu replaces the tooltip. */
+	.share-btn[aria-expanded="true"]::after {
+		content: none;
+	}
+}
+
 /* Keep the card title clear of the floating icon buttons. */
 .card h3 {
 	padding-inline-end: var(--space-l);
@@ -1196,6 +1232,8 @@ main.center {
 	font-weight: 400;
 	line-height: 1.7;
 	max-inline-size: var(--measure);
+	/* Pasted documents keep their paragraph breaks. */
+	white-space: pre-line;
 }
 
 /* Exception: long excerpts start collapsed, JS toggles */

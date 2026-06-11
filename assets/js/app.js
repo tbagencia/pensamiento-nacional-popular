@@ -127,12 +127,12 @@ function renderTimeline(resources) {
 			card.id = `doc-${item.id}`;
 			card.dataset.state = "hidden";
 			card.innerHTML = `
-        <button type="button" class="share-btn" aria-label="Compartir este documento" aria-expanded="false">
+        <button type="button" class="share-btn" aria-label="Compartir este documento" aria-expanded="false" data-tip="Compartir">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="8.59" y1="10.49" x2="15.42" y2="6.51"/></svg>
         </button>
         ${
 					item.source_url
-						? `<a class="source-btn" href="${escapeHtml(item.source_url)}" target="_blank" rel="noopener noreferrer" aria-label="Ver la fuente externa" title="Ver fuente">
+						? `<a class="source-btn" href="${escapeHtml(item.source_url)}" target="_blank" rel="noopener noreferrer" aria-label="Ver la fuente externa" data-tip="Ver fuente">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>`
 						: ""
