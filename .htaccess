@@ -21,6 +21,17 @@ RedirectMatch 404 ^/tests
 #   /validar/<token> -> email verification landing
 <IfModule mod_rewrite.c>
   RewriteEngine On
+
+  # Canonical origin: https + apex domain, enforced before anything is
+  # served. base_url() auto-detects from the request host, so without
+  # this a www/http visit would emit www/http canonicals and sitemap
+  # entries, contradicting itself.
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP_X_FORWARDED_PROTO} !https
+  RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
   RewriteRule ^linea/?$ / [R=302,L]
   RewriteRule ^linea/[0-9]{4}/?$ index.html [L]
   RewriteRule ^tipo/(discurso|carta|manifiesto|libro|ensayo|poema|entrevista|texto)/?$ index.html [L]
