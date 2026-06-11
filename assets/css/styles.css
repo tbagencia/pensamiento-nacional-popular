@@ -1169,7 +1169,12 @@ main.center {
 
 /* ---------- Block: empty state ---------- */
 
-/* The decorative timeline rail makes no sense with nothing threaded on it. */
+/* The decorative timeline rail makes no sense with nothing threaded on
+   it; its gutter padding goes with it, or the empty state sits off-center. */
+.timeline:has(.empty-state) {
+	padding-inline-start: 0;
+}
+
 .timeline:has(.empty-state)::before {
 	content: none;
 }
