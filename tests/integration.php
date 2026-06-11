@@ -153,12 +153,23 @@ check(request('GET', '/linea/')['status'] === 302, 'year-less /linea redirects h
 check(request('GET', '/tipo/discurso')['status'] === 200, 'type filter URL responds');
 check(request('GET', '/tipo/zarzuela')['status'] === 302, 'unknown type redirects home');
 
-section('Document share landing');
+section('Document page (SEO)');
 $res = request('GET', '/documento/1');
-check($res['status'] === 200, 'document landing responds 200');
-check(str_contains($res['body'], 'og:title'), 'landing carries Open Graph tags');
-check(str_contains($res['body'], 'Plan de Operaciones'), 'OG title quotes the document', $res['body']);
-check(str_contains($res['body'], '/linea/1810#doc-1'), 'landing redirects to the timeline card');
+check($res['status'] === 200, 'document page responds 200');
+check(str_contains($res['body'], 'og:title'), 'page carries Open Graph tags');
+check(str_contains($res['body'], 'Plan de Operaciones'), 'page title quotes the document', $res['body']);
+check(str_contains($res['body'], 'rel="canonical"'), 'page declares its canonical URL');
+check(
+    !str_contains($res['body'], 'location.replace') && !str_contains($res['body'], 'http-equiv="refresh"'),
+    'page no longer redirects browsers away (indexable)'
+);
+check(str_contains($res['body'], 'articleBody'), 'structured data carries the article body');
+$excerpt = (string) db()->query('SELECT excerpt FROM resources WHERE id = 1')->fetchColumn();
+$fragment = htmlspecialchars(mb_substr($excerpt, 0, 60), ENT_QUOTES, 'UTF-8');
+check(str_contains($res['body'], $fragment), 'full text is server-rendered in the body', $fragment);
+check(str_contains($res['body'], '/linea/1810#doc-1'), 'page links back to its spot on the timeline');
+check(str_contains($res['body'], 'doc-neighbor'), 'page links its neighbouring documents');
+check(str_contains($res['body'], 'id="doc-data"'), 'share payload is inlined for the share menu');
 check(request('GET', '/documento/99999')['status'] === 302, 'unknown document redirects home');
 
 section('Submission validation');
