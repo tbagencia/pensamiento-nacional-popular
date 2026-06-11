@@ -4,7 +4,7 @@
  *  - 'smtp': minimal SMTP client with STARTTLS + AUTH LOGIN. Used in
  *            development with Mailtrap (sandbox.smtp.mailtrap.io), works
  *            with any standard SMTP server. No Composer dependencies.
- *  - 'mail': PHP mail(), the right choice on shared hosting (Hostinger).
+ *  - 'mail': PHP mail(), the right choice on shared hosting.
  */
 
 require_once __DIR__ . '/config.php';

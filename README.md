@@ -12,7 +12,8 @@ contenido antes de que se publique.
 - **Backend**: PHP 8+ con SQLite (PDO). No requiere configurar base de datos:
   el archivo `data/timeline.sqlite` se crea solo en la primera visita, con
   contenido histórico inicial.
-- Pensado para hosting compartido (Hostinger y similares).
+- Pensado para hosting compartido: sin Composer, sin base de datos externa,
+  sin build step.
 
 ## Estructura
 
@@ -23,11 +24,17 @@ contenido antes de que se publique.
 ├── api/
 │   ├── config.php        # Configuración (contraseña admin, email, etc.)
 │   ├── db.php            # Conexión SQLite + esquema + seed inicial
+│   ├── documento.php     # Página por documento (/documento/{id}, SSR)
+│   ├── mailer.php        # Cliente SMTP en PHP puro
 │   ├── resources.php     # GET documentos aprobados
+│   ├── session.php       # Estado de sesión (email ya validado)
+│   ├── sitemap.php       # Sitemap XML dinámico
 │   ├── submit.php        # POST nueva carga + envío del email VALIDAR
 │   └── verify.php        # Validación del email (destino del botón)
 ├── assets/css|js/        # Estilos y scripts
-└── data/                 # Base SQLite (protegida por .htaccess)
+├── data/                 # Base SQLite (protegida por .htaccess)
+├── router.php            # Rewrites para el server de desarrollo
+└── tests/integration.php # Suite de integración sin dependencias
 ```
 
 ## Flujo de una carga
@@ -61,12 +68,27 @@ cp .env.example .env
 - `/` — línea de tiempo
 - `/linea/1945` — línea de tiempo posicionada en ese año (navegar con los
   chips actualiza la URL, así cada año es compartible)
+- `/tipo/discurso` — línea de tiempo filtrada por tipo de documento
+- `/documento/12` — página propia de cada documento, renderizada en el
+  servidor (ver SEO, abajo)
 - `/cargar` y `/cargar/1945` — formulario de carga, con el año precargado
 - `/validar/<token>` — validación de email (destino del botón VALIDAR)
+- `/sitemap.xml` — sitemap dinámico
 
 En producción las resuelve el `.htaccess` (mod_rewrite); en local, `router.php`.
 El sitio asume deploy en la raíz del dominio; para una subcarpeta habría que
 ajustar las rutas absolutas y las reglas de rewrite.
+
+## SEO
+
+- Cada documento tiene su página indexable en `/documento/{id}`: texto
+  completo renderizado en el servidor, canonical, Open Graph y JSON-LD
+  (`Article` con `articleBody`), más enlaces al documento anterior y
+  siguiente para que los crawlers recorran todo el archivo.
+- `sitemap.xml` se genera dinámicamente: home + documentos aprobados, cada
+  uno con `lastmod` (fecha de carga).
+- El `.htaccess` fuerza el origen canónico con 301: `www` y `http`
+  convergen en `https://` + dominio sin `www`.
 
 ## Probar en local
 
@@ -95,7 +117,7 @@ El cliente SMTP (`api/mailer.php`) es PHP puro, sin Composer.
 Suite de integración sin dependencias que levanta un servidor de prueba con
 una base descartable y recorre el circuito completo por HTTP (carga,
 validación de email, salto de validación por sesión, límite diario,
-moderación con CSRF):
+moderación con CSRF, página de documento y sitemap):
 
 ```bash
 php tests/integration.php
@@ -103,27 +125,38 @@ php tests/integration.php
 
 Sale con código 0 si todo pasa. Correrla antes de cada deploy.
 
-## Deploy en Hostinger (hosting compartido)
+## Deploy
 
-1. **Subir archivos**: copiar todo el contenido de esta carpeta a `public_html/`
-   (o una subcarpeta) vía Administrador de Archivos o FTP.
+Requisitos mínimos del servidor:
+
+- PHP 8+ con `pdo_sqlite` (incluido en casi cualquier hosting).
+- Apache o LiteSpeed con `mod_rewrite` y soporte de `.htaccess`.
+- Una casilla de correo del propio dominio para usar como remitente.
+- Deploy en la raíz del dominio (las URLs amigables y las rutas absolutas
+  lo asumen).
+
+Pasos:
+
+1. **Subir archivos**: copiar todo el contenido de esta carpeta a la raíz
+   pública del servidor (`public_html/` o equivalente) vía FTP o el
+   administrador de archivos del panel.
 2. **Crear el `.env` de producción** (no subir el de desarrollo):
    - `ADMIN_PASSWORD_HASH`: hash de una contraseña propia, generado con
      `php -r "echo password_hash('TU_CLAVE', PASSWORD_DEFAULT);"`.
-   - `MAIL_FROM`: una casilla del propio dominio (crearla en Hostinger →
-     Correos). Si el remitente no es del dominio, los emails caen en spam.
+   - `MAIL_FROM`: una casilla del propio dominio. Si el remitente no es del
+     dominio, los emails caen en spam.
    - `MAIL_DRIVER=mail` y `DEV_MODE=false` — obligatorio en producción: con
      `DEV_MODE=true` el enlace de validación se muestra en pantalla y
      cualquiera puede saltearse la verificación de email.
-3. **Permisos**: la carpeta `data/` debe ser escribible por PHP (en Hostinger
-   suele bastar con 755; si falla la escritura, probar 775).
+3. **Permisos**: la carpeta `data/` debe ser escribible por PHP (suele
+   bastar con 755; si falla la escritura, probar 775).
 4. Listo: la base de datos se crea sola en la primera visita. El `.htaccess`
    de la raíz bloquea el acceso web al `.env`.
 
 ## Notas
 
-- El `.htaccess` dentro de `data/` bloquea el acceso web directo a la base.
-  Hostinger usa Apache/LiteSpeed, que lo respetan.
+- El `.htaccess` dentro de `data/` bloquea el acceso web directo a la base
+  (lo respetan Apache y LiteSpeed).
 - Si el plan no tuviera `pdo_sqlite` (muy raro), el código está aislado en
   `api/db.php` y migrar a MySQL es directo: cambiar el DSN de PDO y el esquema.
 - Antispam incluido: campo honeypot en el formulario y límite de 5 cargas por
