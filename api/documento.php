@@ -291,7 +291,7 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
       'year' => (int) $doc['year'],
       'excerpt' => $doc['excerpt'],
   ], JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?></script>
-  <script src="/assets/js/share.js?v=2"></script>
+  <script src="/assets/js/share.js?v=4"></script>
   <script src="/assets/js/documento.js?v=1"></script>
   <script src="/assets/js/credits.js?v=2"></script>
 </body>

@@ -21,14 +21,30 @@ const shareTouchOnly = window.matchMedia("(hover: none)");
 
 const SHARE_QUOTE_LENGTH = 200;
 
+function clampQuote(excerpt, max) {
+	const text = (excerpt ?? "").trim();
+	return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
 /** The shared payload is the quote itself, not just a link. */
 function shareText(item) {
-	const excerpt = (item.excerpt ?? "").trim();
-	const quote =
-		excerpt.length > SHARE_QUOTE_LENGTH
-			? `${excerpt.slice(0, SHARE_QUOTE_LENGTH - 1).trimEnd()}…`
-			: excerpt;
-	return `«${quote}»\n${item.author} — ${item.title} (${item.year})`;
+	return `«${clampQuote(item.excerpt, SHARE_QUOTE_LENGTH)}»\n${item.author} — ${item.title} (${item.year})`;
+}
+
+/** X caps posts at 280 chars and the composer may count the URL raw
+ *  (not t.co-wrapped), so the budget assumes a full-length URL and the
+ *  quote stays a short teaser — the full text lives on the page. */
+const X_QUOTE_LENGTH = 120;
+const X_TEXT_BUDGET = 220;
+
+function shareTextForX(item) {
+	const attribution = `\n${item.author} — ${item.title} (${item.year})`;
+	const maxQuote = Math.min(
+		X_QUOTE_LENGTH,
+		X_TEXT_BUDGET - 2 - attribution.length,
+	);
+	if (maxQuote < 20) return attribution.trimStart();
+	return `«${clampQuote(item.excerpt, maxQuote)}»${attribution}`;
 }
 
 function initShare(root, resolveItem) {
@@ -74,10 +90,10 @@ function initShare(root, resolveItem) {
 
 		const wasOpen = card.querySelector(".share-menu") !== null;
 		closeShareMenus();
-		if (!wasOpen) openShareMenu(btn, card, text, url);
+		if (!wasOpen) openShareMenu(btn, card, item, text, url);
 	}
 
-	function openShareMenu(btn, card, text, url) {
+	function openShareMenu(btn, card, item, text, url) {
 		const menu = document.createElement("div");
 		menu.className = "share-menu";
 		menu.innerHTML = `
@@ -94,7 +110,7 @@ function initShare(root, resolveItem) {
 				${SHARE_ICONS.facebook}<span>Compartir en Facebook</span>
 			</a>
 			<a class="share-option" target="_blank" rel="noopener noreferrer"
-				href="https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&amp;url=${encodeURIComponent(url)}">
+				href="https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTextForX(item))}&amp;url=${encodeURIComponent(url)}">
 				${SHARE_ICONS.x}<span>Compartir en X</span>
 			</a>`;
 
