@@ -51,7 +51,16 @@ contenido antes de que se publique.
    El panel vive en `/admin/` por defecto; si `ADMIN_PATH` está definido en
    `.env`, pasa a responder solo en `/panel/<ADMIN_PATH>` y `/admin/`
    devuelve 404 (el secreto nunca se commitea).
-5. Solo los documentos `approved` aparecen en la línea de tiempo.
+6. Solo los documentos `approved` aparecen en la línea de tiempo.
+
+Atajos al flujo:
+
+- **Sesión ya validada**: si el mismo email ya validó en esa sesión, las
+  cargas siguientes saltan el email y van directo a `pending_review`.
+- **Moderadores**: si el email pertenece a `MODERATOR_EMAILS`, el aporte se
+  publica directo (`approved`) al validar el email — no tiene sentido que
+  un moderador se modere a sí mismo. Con la sesión ya validada, publica al
+  instante.
 
 ## Configuración
 
