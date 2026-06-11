@@ -1350,13 +1350,23 @@ main.center {
 }
 
 /* Neighbouring documents: miniature timeline entries (year pill +
-   small card) peeking in from the line, before and after. */
+   small card) peeking in from the line, before and after. This is a
+   detail view, not the timeline: the current document keeps clear
+   air around it so it reads as the centrepiece. */
 .doc-neighbor {
 	position: relative;
 	display: grid;
 	gap: var(--space-3xs);
 	justify-items: start;
 	text-decoration: none;
+}
+
+.doc-neighbor + .doc-year {
+	margin-block-start: var(--space-xl);
+}
+
+.doc-card + .doc-neighbor {
+	margin-block-start: var(--space-xl);
 }
 
 .doc-neighbor::before {

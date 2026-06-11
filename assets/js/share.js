@@ -82,7 +82,7 @@ function initShare(root, resolveItem) {
 		menu.className = "share-menu";
 		menu.innerHTML = `
 			<button type="button" class="share-option" data-action="copy">
-				${SHARE_ICONS.link}<span>Copiar</span>
+				${SHARE_ICONS.link}<span>Copiar link</span>
 			</button>
 			<hr class="share-divider" />
 			<a class="share-option" target="_blank" rel="noopener noreferrer"
@@ -98,8 +98,9 @@ function initShare(root, resolveItem) {
 				${SHARE_ICONS.x}<span>Compartir en X</span>
 			</a>`;
 
+		// Platform shares carry the quote; copying is just the link.
 		const copy = menu.querySelector('[data-action="copy"]');
-		copy.dataset.payload = `${text}\n${url}`;
+		copy.dataset.payload = url;
 
 		card.appendChild(menu);
 		btn.setAttribute("aria-expanded", "true");

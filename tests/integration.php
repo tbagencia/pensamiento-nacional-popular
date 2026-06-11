@@ -172,6 +172,13 @@ check(str_contains($res['body'], 'doc-neighbor'), 'page links its neighbouring d
 check(str_contains($res['body'], 'id="doc-data"'), 'share payload is inlined for the share menu');
 check(request('GET', '/documento/99999')['status'] === 302, 'unknown document redirects home');
 
+section('Sitemap');
+$res = request('GET', '/sitemap.xml');
+check($res['status'] === 200, 'sitemap responds 200');
+check(str_contains($res['body'], '/documento/1</loc>'), 'sitemap lists approved documents');
+check(str_contains($res['body'], '<lastmod>'), 'entries carry lastmod dates');
+check(!str_contains($res['body'], '/cargar'), 'form page is left out of the sitemap');
+
 section('Submission validation');
 $res = request('POST', '/api/submit.php', ['json' => ['title' => '', 'email' => 'nope'], 'cookies' => 'visitor']);
 check($res['status'] === 422, 'invalid submission is rejected with 422');
