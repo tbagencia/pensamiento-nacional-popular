@@ -369,9 +369,8 @@ a {
 	bottom: 0;
 	width: min(22rem, 90vw);
 	max-width: 22rem;
-	background: var(--surface);
+	background: var(--surface-warm);
 	box-shadow: var(--shadow-2);
-	padding: var(--space-m);
 	overflow-y: auto;
 	-webkit-overflow-scrolling: touch;
 	transform: translateX(100%);
@@ -384,45 +383,83 @@ a {
 	transform: translateX(0);
 }
 
-.credits-close {
+/* Dark masthead mirroring the site header, flag band included. */
+.credits-head {
 	position: sticky;
 	top: 0;
-	float: right;
+	z-index: 1;
+	padding: var(--space-l) var(--space-m) var(--space-m);
+	background: linear-gradient(135deg, var(--brand-deep), var(--brand-dark));
+	color: var(--paper);
+}
+
+.credits-head::after {
+	content: "";
+	position: absolute;
+	inset-inline: 0;
+	inset-block-end: 0;
+	height: 6px;
+	background: linear-gradient(
+		to bottom,
+		var(--sky) 0 2px,
+		#fff 2px 4px,
+		var(--sky) 4px 6px
+	);
+	pointer-events: none;
+}
+
+.credits-head .eyebrow {
+	margin-block-end: var(--space-2xs);
+	font-size: var(--text--2);
+}
+
+.credits-head h2 {
+	margin: 0;
+	font-size: var(--text-2);
+	color: var(--surface);
+	letter-spacing: 0.01em;
+	padding-inline-end: var(--space-xl);
+}
+
+.credits-close {
+	position: absolute;
+	top: var(--space-s);
+	right: var(--space-s);
 	width: 2.25rem;
 	height: 2.25rem;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: var(--surface);
-	border: 1px solid var(--line);
+	background: transparent;
+	border: 1px solid color-mix(in srgb, var(--paper) 35%, transparent);
 	border-radius: 50%;
-	color: var(--muted);
+	color: var(--paper);
 	cursor: pointer;
-	margin-block-end: var(--space-m);
 	transition:
+		background 0.2s ease,
 		border-color 0.2s ease,
 		color 0.2s ease;
 }
 
 .credits-close:hover {
-	border-color: var(--brand);
-	color: var(--brand);
-}
-
-.credits-content h2 {
-	clear: both;
-	font-size: var(--text-2);
+	background: var(--gold);
+	border-color: var(--gold);
 	color: var(--brand-deep);
-	margin-block: 0 var(--space-m);
-	padding-block-end: var(--space-s);
-	border-block-end: 2px solid var(--gold);
 }
 
-.credits-content section {
+.credits-body {
+	padding: var(--space-m);
+}
+
+.credits-body section {
 	margin-block-end: var(--space-l);
 }
 
-.credits-content h3 {
+.credits-body section:last-child {
+	margin-block-end: 0;
+}
+
+.credits-body h3 {
 	font-family: var(--font-ui);
 	font-size: var(--text--1);
 	font-weight: 700;
@@ -432,7 +469,7 @@ a {
 	margin-block: 0 var(--space-2xs);
 }
 
-.credits-content p {
+.credits-body p {
 	margin-block: var(--space-2xs);
 	line-height: 1.6;
 }
@@ -443,20 +480,41 @@ a {
 	font-style: italic;
 }
 
+/* The credit lists echo the timeline: celeste rail, gold nodes. */
 .credits-list {
 	list-style: none;
-	padding: 0;
+	position: relative;
+	padding: 0 0 0 var(--space-m);
 	margin: var(--space-2xs) 0 0;
 }
 
+.credits-list::before {
+	content: "";
+	position: absolute;
+	inset-block: var(--space-s);
+	inset-inline-start: calc(0.3rem - 1px);
+	width: 2px;
+	background: var(--sky);
+	border-radius: var(--radius-pill);
+}
+
 .credits-list li {
+	position: relative;
 	padding: var(--space-3xs) 0;
-	border-block-end: 1px solid var(--line);
 	font-family: var(--font-display);
 }
 
-.credits-list li:last-child {
-	border-block-end: none;
+.credits-list li::before {
+	content: "";
+	position: absolute;
+	inset-inline-start: calc(0.3rem - var(--space-m));
+	inset-block-start: 50%;
+	width: 0.6rem;
+	height: 0.6rem;
+	border-radius: 50%;
+	background: var(--gold);
+	transform: translate(-50%, -50%);
+	box-shadow: 0 0 0 2px var(--surface-warm);
 }
 
 .tagline {

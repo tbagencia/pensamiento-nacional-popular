@@ -205,26 +205,30 @@
     >
       <div class="credits-overlay" id="credits-overlay"></div>
       <div class="credits-content">
-        <button
-          type="button"
-          id="credits-close"
-          class="credits-close"
-          aria-label="Cerrar"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
+        <header class="credits-head">
+          <button
+            type="button"
+            id="credits-close"
+            class="credits-close"
+            aria-label="Cerrar"
           >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-        <h2 id="credits-title">Acerca del proyecto</h2>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          <p class="eyebrow">Archivo colaborativo</p>
+          <h2 id="credits-title">Acerca del proyecto</h2>
+        </header>
 
+        <div class="credits-body">
         <section>
           <p>
             Herramienta web interactiva para visualizar una línea de tiempo de
@@ -294,6 +298,7 @@
             Ver en GitHub
           </a>
         </section>
+        </div>
       </div>
     </aside>
 
