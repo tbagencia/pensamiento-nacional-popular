@@ -1021,7 +1021,8 @@ main.center {
 
 /* ---------- Block: card share ---------- */
 
-.share-btn {
+.share-btn,
+.source-btn {
 	position: absolute;
 	top: var(--space-xs);
 	right: var(--space-xs);
@@ -1039,14 +1040,24 @@ main.center {
 		background 0.2s ease;
 }
 
-.share-btn:hover {
+.share-btn:hover,
+.source-btn:hover {
 	color: var(--brand);
 	background: color-mix(in srgb, var(--sky) 20%, #fff);
 }
 
-/* Keep the card title clear of the floating share button. */
+/* The external-source icon sits beside the share button. */
+.source-btn {
+	right: calc(var(--space-xs) + 2rem + var(--space-3xs));
+}
+
+/* Keep the card title clear of the floating icon buttons. */
 .card h3 {
 	padding-inline-end: var(--space-l);
+}
+
+.card:has(.source-btn) h3 {
+	padding-inline-end: var(--space-2xl);
 }
 
 .share-menu {
@@ -1205,11 +1216,6 @@ main.center {
 	font-weight: 600;
 	cursor: pointer;
 	text-decoration: underline;
-}
-
-.source-link {
-	font-family: var(--font-ui);
-	font-size: var(--text--1);
 }
 
 .empty {
