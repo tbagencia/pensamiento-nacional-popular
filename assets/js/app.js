@@ -554,9 +554,16 @@ function setupReadMore() {
 
 		const excerpt = btn.parentElement.querySelector(".excerpt");
 		const collapsed = excerpt.dataset.state === "collapsed";
+		const anchor = btn.getBoundingClientRect().top;
 		excerpt.dataset.state = collapsed ? "expanded" : "collapsed";
 		btn.setAttribute("aria-expanded", String(collapsed));
 		btn.textContent = collapsed ? "Leer menos" : "Leer más";
+
+		// Collapsing shrinks everything above the button, dragging the
+		// viewport to another year: compensate so the button stays put.
+		if (!collapsed) {
+			window.scrollBy(0, btn.getBoundingClientRect().top - anchor);
+		}
 	});
 }
 
