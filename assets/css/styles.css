@@ -44,6 +44,7 @@
 	/* Layout */
 	--measure: 65ch;
 	--container: 46rem;
+	--container-s: 30rem;
 	--radius: 14px;
 	--radius-pill: 999px;
 	--shadow-1:
@@ -563,26 +564,30 @@ a {
 	display: flex;
 	gap: var(--space-xs);
 	overflow-x: auto;
-	padding: var(--space-xs) var(--space-m);
+	/* The leading padding clears the floating search circle pinned at
+     the top-left corner once the nav sticks to the viewport. */
+	padding: var(--space-xs) var(--space-m) var(--space-xs)
+		calc(2.75rem + var(--space-l));
 	background: color-mix(in srgb, var(--paper) 92%, transparent);
 	backdrop-filter: blur(6px);
 	border-block-end: 1px solid var(--line);
 	-webkit-overflow-scrolling: touch;
 	scrollbar-width: none;
 	/* Fade the edges to hint that more years continue beyond them.
-     The fade zone matches the inline padding, so resting pills sit in
-     the opaque area and the magnified pill never looks clipped. */
+     The fade zones match the inline paddings, so resting pills sit in
+     the opaque area, the magnified pill never looks clipped, and chips
+     scrolling toward the search circle fade out before reaching it. */
 	-webkit-mask-image: linear-gradient(
 		to right,
 		transparent,
-		#000 var(--space-m),
+		#000 calc(2.75rem + var(--space-l)),
 		#000 calc(100% - var(--space-m)),
 		transparent
 	);
 	mask-image: linear-gradient(
 		to right,
 		transparent,
-		#000 var(--space-m),
+		#000 calc(2.75rem + var(--space-l)),
 		#000 calc(100% - var(--space-m)),
 		transparent
 	);
@@ -676,6 +681,178 @@ a {
 	background: var(--muted);
 	border-color: var(--muted);
 	color: #fff;
+}
+
+/* ---------- Block: search ---------- */
+
+/* Composition: groups search + type pills. Transparent on mobile;
+   on desktop it becomes the sticky right-gutter rail. */
+.filter-rail {
+	display: contents;
+}
+
+/* On mobile the search floats at the top-left corner, mirroring the
+   to-top button at the bottom-right. Collapsed it is a round magnifier
+   node; circle and pill are the same input, so opening is a pure
+   max-inline-size transition. It expands on focus, stays floating while
+   a query is active, and folds back when it loses focus while empty. */
+.search-bar {
+	position: fixed;
+	inset-block-start: var(--space-2xs);
+	inset-inline-start: var(--space-2xs);
+	z-index: 40;
+	inline-size: calc(100% - 2 * var(--space-2xs));
+	max-inline-size: var(--container-s);
+	transition: max-inline-size 0.35s var(--ease-out);
+}
+
+.search-bar input[type="search"] {
+	inline-size: 100%;
+	block-size: 2.75rem;
+	appearance: none;
+	border: 1px solid var(--line);
+	border-radius: var(--radius-pill);
+	padding: 0 var(--space-l);
+	font-size: var(--text-0);
+	font-family: var(--font-ui);
+	background: var(--surface-warm);
+	color: var(--ink);
+	text-overflow: ellipsis;
+	box-shadow: var(--shadow-1);
+	transition:
+		border-color 0.15s ease,
+		background 0.2s ease,
+		box-shadow 0.2s ease;
+}
+
+.search-bar input[type="search"]:focus {
+	outline: 2px solid var(--sky);
+	border-color: var(--brand);
+}
+
+.search-bar input::placeholder {
+	transition: opacity 0.2s ease;
+}
+
+/* Our clear button replaces the native WebKit one. */
+.search-bar input[type="search"]::-webkit-search-cancel-button {
+	-webkit-appearance: none;
+}
+
+/* Exception: folded into the circle. */
+.search-bar[data-state="collapsed"] {
+	max-inline-size: 2.75rem;
+}
+
+.search-bar[data-state="collapsed"] input[type="search"] {
+	cursor: pointer;
+	padding-inline: 0;
+}
+
+.search-bar[data-state="collapsed"] input::placeholder {
+	opacity: 0;
+}
+
+.search-bar[data-state="collapsed"]:hover input[type="search"] {
+	border-color: var(--brand);
+}
+
+.search-bar[data-state="collapsed"]:hover .search-icon {
+	color: var(--brand);
+}
+
+/* Exception: while floating over the dark hero header, the collapsed
+   circle borrows the "Acerca de" badge language — transparent with a
+   gold outline. JS flips data-context as the header scrolls away. */
+.search-bar[data-context="hero"][data-state="collapsed"] input[type="search"] {
+	background: transparent;
+	border-color: var(--gold);
+	box-shadow: none;
+}
+
+.search-bar[data-context="hero"][data-state="collapsed"] .search-icon {
+	color: var(--gold);
+}
+
+.search-bar[data-context="hero"][data-state="collapsed"]:hover
+	input[type="search"] {
+	background: var(--gold);
+}
+
+.search-bar[data-context="hero"][data-state="collapsed"]:hover .search-icon {
+	color: var(--brand-deep);
+}
+
+/* Exception: once the header scrolls away the circle sits in the sticky
+   year bar, so it dresses like a year chip. The background stays solid:
+   chips scrolling underneath must not show through the magnifier. */
+.search-bar[data-context="page"][data-state="collapsed"] input[type="search"] {
+	background: var(--paper);
+	border-color: var(--brand);
+	box-shadow: none;
+}
+
+.search-bar[data-context="page"][data-state="collapsed"] .search-icon {
+	color: var(--brand);
+}
+
+.search-bar[data-context="page"][data-state="collapsed"]:hover
+	input[type="search"] {
+	background: color-mix(in srgb, var(--sky) 30%, var(--paper));
+}
+
+/* Icon and clear anchor to the input's fixed height, not the bar's:
+   on desktop the count flows below the input and would skew a 50% offset. */
+.search-icon {
+	position: absolute;
+	inset-inline-start: var(--space-xs);
+	inset-block-start: calc(2.75rem / 2);
+	translate: 0 -50%;
+	color: var(--muted);
+	pointer-events: none;
+	transition: color 0.2s ease;
+}
+
+.search-clear {
+	position: absolute;
+	inset-inline-end: var(--space-2xs);
+	inset-block-start: calc(2.75rem / 2);
+	translate: 0 -50%;
+	display: grid;
+	place-items: center;
+	inline-size: var(--space-m);
+	block-size: var(--space-m);
+	border: 0;
+	border-radius: 50%;
+	background: color-mix(in srgb, var(--muted) 15%, transparent);
+	color: var(--muted);
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.search-clear:hover {
+	background: color-mix(in srgb, var(--muted) 28%, transparent);
+}
+
+/* Result count hangs from the floating pill as a small chip. */
+.search-count {
+	position: absolute;
+	inset-block-start: calc(100% + var(--space-2xs));
+	inset-inline-start: 0;
+	margin: 0;
+	padding: var(--space-3xs) var(--space-s);
+	background: var(--surface-warm);
+	border-radius: var(--radius-pill);
+	box-shadow: var(--shadow-1);
+	white-space: nowrap;
+}
+
+/* Search matches highlighted inside cards. */
+.card mark {
+	background: var(--gold-soft);
+	color: inherit;
+	border-radius: 0.2em;
+	padding-inline: 0.08em;
 }
 
 /* ---------- Block: timeline ---------- */
@@ -988,6 +1165,48 @@ main.center {
 	text-align: center;
 	color: var(--muted);
 	font-family: var(--font-ui);
+}
+
+/* ---------- Block: empty state ---------- */
+
+/* The decorative timeline rail makes no sense with nothing threaded on it. */
+.timeline:has(.empty-state)::before {
+	content: none;
+}
+
+.empty-state {
+	display: grid;
+	justify-items: center;
+	gap: var(--space-2xs);
+	padding: var(--space-xl) var(--space-m);
+	text-align: center;
+	font-family: var(--font-ui);
+	color: var(--muted);
+}
+
+.empty-state svg {
+	color: var(--sky);
+	margin-block-end: var(--space-2xs);
+}
+
+.empty-state-title {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: var(--text-2);
+	font-weight: 700;
+	color: var(--brand-deep);
+}
+
+.empty-state-hint {
+	margin: 0;
+}
+
+.empty-state-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: var(--space-2xs);
+	margin-block-start: var(--space-s);
 }
 
 /* ---------- Block: add to year ---------- */
@@ -1490,11 +1709,11 @@ input[readonly] {
 		background: var(--brand);
 	}
 
-	/* Type filters float in the right gutter, mirroring the year rail:
-     a narrow wrapping cluster, up to three pills per row. The top offset
-     matches the rail's margin + fade padding so the first row of pills
-     lines up with the first year pill. */
-	.type-nav {
+	/* Search and type filters float in the right gutter, mirroring the
+     year rail. The top offset matches the rail's margin + fade padding
+     so the search box lines up with the first year pill. */
+	.filter-rail {
+		display: block;
 		grid-column: 3;
 		grid-row: 2;
 		justify-self: start;
@@ -1505,6 +1724,56 @@ input[readonly] {
 		margin-inline: var(--space-l) var(--space-s);
 		inline-size: calc(100% - var(--space-l) - var(--space-s));
 		max-inline-size: 18rem;
+	}
+
+	/* The gutter has room to spare: search sits in the rail always open;
+     floating and collapsing are mobile-only economies. */
+	.search-bar,
+	.search-bar[data-state="collapsed"] {
+		position: relative;
+		inset: auto;
+		inline-size: 100%;
+		max-inline-size: 100%;
+	}
+
+	.search-bar[data-state="collapsed"] input[type="search"] {
+		cursor: text;
+		padding: 0 var(--space-l);
+	}
+
+	.search-bar[data-state="collapsed"] input::placeholder {
+		opacity: 1;
+	}
+
+	/* In the rail the input is a plain text field: the hero/chip
+     dress-up contexts are mobile-only. */
+	.search-bar[data-context][data-state] input[type="search"] {
+		background: var(--surface-warm);
+		border-color: var(--line);
+		box-shadow: var(--shadow-1);
+	}
+
+	.search-bar[data-context][data-state]:hover input[type="search"] {
+		background: var(--surface-warm);
+		border-color: var(--brand);
+	}
+
+	.search-bar[data-context][data-state] .search-icon {
+		color: var(--muted);
+	}
+
+	.search-count {
+		position: static;
+		margin: var(--space-2xs) var(--space-2xs) 0;
+		padding: 0;
+		background: transparent;
+		box-shadow: none;
+		text-align: start;
+		white-space: normal;
+	}
+
+	.type-nav {
+		margin-block-start: var(--space-s);
 		gap: var(--space-3xs);
 		justify-content: flex-start;
 		padding: 0;

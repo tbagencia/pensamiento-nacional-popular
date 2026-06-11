@@ -50,7 +50,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/assets/css/styles.css?v=9" />
+    <link rel="stylesheet" href="/assets/css/styles.css?v=10" />
   </head>
   <body>
     <a class="skip-link" href="#timeline">Saltar a la línea de tiempo</a>
@@ -83,14 +83,63 @@
       </nav>
     </div>
 
-    <nav
-      id="type-nav"
-      class="type-nav"
-      aria-label="Filtrar por tipo de documento"
-      hidden
-    >
-      <!-- Type filter pills rendered by app.js -->
-    </nav>
+    <div class="filter-rail">
+      <div class="search-bar" role="search" data-state="collapsed">
+        <svg
+          class="search-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input
+          type="search"
+          id="search-input"
+          placeholder="Buscar en el archivo…"
+          aria-label="Buscar en el archivo"
+          autocomplete="off"
+        />
+        <button
+          type="button"
+          id="search-clear"
+          class="search-clear"
+          aria-label="Cerrar búsqueda"
+          hidden
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+        <p id="search-count" class="status search-count" role="status" hidden></p>
+      </div>
+
+      <nav
+        id="type-nav"
+        class="type-nav"
+        aria-label="Filtrar por tipo de documento"
+        hidden
+      >
+        <!-- Type filter pills rendered by app.js -->
+      </nav>
+    </div>
 
     <main class="center">
       <noscript>
@@ -241,7 +290,7 @@
       </div>
     </aside>
 
-    <script src="/assets/js/app.js?v=9"></script>
+    <script src="/assets/js/app.js?v=10"></script>
     <script src="/assets/js/credits.js?v=2"></script>
   </body>
 </html>

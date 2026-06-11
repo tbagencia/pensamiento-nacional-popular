@@ -11,6 +11,10 @@ const statusEl = document.getElementById("status");
 const yearNav = document.querySelector(".year-nav");
 const typeNav = document.getElementById("type-nav");
 const toTopBtn = document.getElementById("to-top");
+const searchBar = document.querySelector(".search-bar");
+const searchInput = document.getElementById("search-input");
+const searchClear = document.getElementById("search-clear");
+const searchCount = document.getElementById("search-count");
 
 const TYPE_LABELS = {
 	discurso: "Discursos",
@@ -25,6 +29,7 @@ const TYPE_LABELS = {
 
 let allResources = [];
 let activeType = null;
+let searchWords = [];
 let spyObserver = null;
 let revealObserver = null;
 
@@ -48,6 +53,7 @@ async function init() {
 
 		activeType = typeFromUrl();
 		buildTypeNav();
+		setupSearch();
 		setupYearNavClicks();
 		setupNavMetrics();
 		setupReadMore();
@@ -65,9 +71,17 @@ async function init() {
 }
 
 function currentResources() {
-	return activeType
+	let list = activeType
 		? allResources.filter((r) => r.type === activeType)
 		: allResources;
+
+	if (searchWords.length > 0) {
+		list = list.filter((r) => {
+			const haystack = fold(`${r.title} ${r.author} ${r.excerpt} ${r.year}`);
+			return searchWords.every((word) => haystack.includes(word));
+		});
+	}
+	return list;
 }
 
 /** Re-renders timeline and year chips; safe to call on every filter change. */
@@ -91,8 +105,7 @@ function renderTimeline(resources) {
 	}
 
 	if (byYear.size === 0) {
-		timelineEl.innerHTML =
-			'<li class="empty">No hay documentos para este filtro.</li>';
+		timelineEl.innerHTML = renderEmptyState();
 		return;
 	}
 
@@ -104,7 +117,11 @@ function renderTimeline(resources) {
 		li.innerHTML = `<h2>${year}</h2>`;
 
 		for (const item of items) {
-			const isLong = (item.excerpt ?? "").length > EXCERPT_COLLAPSE_LENGTH;
+			// While searching, excerpts render expanded: a match hidden
+			// behind the "read more" fold would look like a false positive.
+			const isLong =
+				searchWords.length === 0 &&
+				(item.excerpt ?? "").length > EXCERPT_COLLAPSE_LENGTH;
 			const card = document.createElement("article");
 			card.className = "card";
 			card.id = `doc-${item.id}`;
@@ -114,9 +131,9 @@ function renderTimeline(resources) {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </button>
         <span class="badge badge-type">${escapeHtml(item.type)}</span>
-        <h3>${escapeHtml(item.title)}</h3>
-        <p class="author">${escapeHtml(item.author)}</p>
-        <p class="excerpt" ${isLong ? 'data-state="collapsed"' : ""}>${escapeHtml(item.excerpt)}</p>
+        <h3>${markMatches(item.title)}</h3>
+        <p class="author">${markMatches(item.author)}</p>
+        <p class="excerpt" ${isLong ? 'data-state="collapsed"' : ""}>${markMatches(item.excerpt)}</p>
         ${isLong ? '<button type="button" class="read-more" aria-expanded="false">Leer más</button>' : ""}
         ${
 					item.source_url
@@ -134,6 +151,29 @@ function renderTimeline(resources) {
 
 		timelineEl.appendChild(li);
 	}
+}
+
+/** Friendly no-results view with one-tap ways out of the dead end. */
+function renderEmptyState() {
+	const hint = searchWords.length
+		? activeType
+			? "Probá con otras palabras o quitá el filtro de tipo."
+			: "Probá con menos palabras o con un término distinto."
+		: "Todavía no hay documentos de este tipo en el archivo.";
+	return `
+		<li class="empty-state">
+			<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+				<circle cx="11" cy="11" r="7"/>
+				<line x1="20.5" y1="20.5" x2="16" y2="16"/>
+				<circle cx="11" cy="11" r="2.2" fill="var(--gold)" stroke="none"/>
+			</svg>
+			<p class="empty-state-title">${searchWords.length ? "Sin resultados" : "Nada por acá"}</p>
+			<p class="empty-state-hint">${hint}</p>
+			<div class="empty-state-actions">
+				${searchWords.length ? '<button type="button" class="btn btn-primary" data-action="clear-search">Limpiar búsqueda</button>' : ""}
+				${activeType ? '<button type="button" class="btn btn-ghost" data-action="clear-type">Ver todos los tipos</button>' : ""}
+			</div>
+		</li>`;
 }
 
 function renderYearChips(resources) {
@@ -165,6 +205,115 @@ function setupYearNavClicks() {
 		);
 		scrollToYear(year, prefersReducedMotion.matches ? "auto" : "smooth");
 	});
+}
+
+/* ---------- Search ---------- */
+
+const SEARCH_DEBOUNCE_MS = 180;
+
+function setupSearch() {
+	if (!searchInput) return;
+	let timer;
+
+	searchInput.addEventListener("input", () => {
+		clearTimeout(timer);
+		timer = setTimeout(applySearch, SEARCH_DEBOUNCE_MS);
+	});
+
+	// The collapsed/open exception only has visual effect on mobile;
+	// the desktop rail keeps the input expanded regardless of state.
+	searchInput.addEventListener("focus", () => {
+		searchBar.dataset.state = "open";
+		refreshSearchClear();
+	});
+
+	searchInput.addEventListener("blur", () => {
+		if (!searchInput.value) {
+			searchBar.dataset.state = "collapsed";
+			refreshSearchClear();
+		}
+	});
+
+	searchInput.addEventListener("keydown", (e) => {
+		if (e.key !== "Escape") return;
+		if (searchInput.value) {
+			searchInput.value = "";
+			applySearch();
+		} else {
+			searchInput.blur();
+		}
+	});
+
+	searchClear.addEventListener("click", clearSearch);
+
+	// Escape hatches rendered inside the empty state.
+	timelineEl.addEventListener("click", (e) => {
+		if (e.target.closest('[data-action="clear-search"]')) clearSearch();
+		if (e.target.closest('[data-action="clear-type"]')) clearTypeFilter();
+	});
+
+	refreshSearchContext();
+	window.addEventListener("scroll", refreshSearchContext, { passive: true });
+}
+
+function clearSearch() {
+	searchInput.value = "";
+	applySearch();
+	// On desktop the input lives in the rail and keeps focus for a
+	// retype; on mobile clearing also closes the floating search.
+	if (desktopRail.matches) {
+		searchInput.focus();
+	} else {
+		searchBar.dataset.state = "collapsed";
+		refreshSearchClear();
+	}
+}
+
+function clearTypeFilter() {
+	if (!activeType) return;
+	activeType = null;
+	refreshTypePills();
+	renderAll();
+	history.replaceState(null, "", "/");
+}
+
+/** Over the dark hero header the collapsed circle dresses like the
+ *  "Acerca de" badge; over page content it needs a solid surface. */
+function refreshSearchContext() {
+	const overHero =
+		document.querySelector(".site-header").getBoundingClientRect().bottom >
+		searchBar.getBoundingClientRect().bottom;
+	searchBar.dataset.context = overHero ? "hero" : "page";
+}
+
+/** The X clears the text, and on mobile it doubles as the close button,
+ *  so it shows whenever the floating search is open. */
+function refreshSearchClear() {
+	const mobileOpen =
+		!desktopRail.matches && searchBar.dataset.state === "open";
+	searchClear.hidden = !searchInput.value && !mobileOpen;
+}
+
+function applySearch() {
+	const hadWords = searchWords.length > 0;
+	searchWords = fold(searchInput.value).split(/\s+/).filter(Boolean);
+	refreshSearchClear();
+	renderAll();
+
+	// A fresh search jumps to the top so the results are in view:
+	// the floating input means the user may be anywhere in the page.
+	if (!hadWords && searchWords.length > 0) {
+		window.scrollTo({ top: 0, behavior: "auto" });
+	}
+
+	if (searchWords.length === 0) {
+		searchCount.hidden = true;
+		return;
+	}
+	const total = currentResources().length;
+	searchCount.textContent =
+		total === 1 ? "1 documento encontrado" : `${total} documentos encontrados`;
+	searchCount.hidden = false;
 }
 
 /* ---------- Type filter ---------- */
@@ -569,4 +718,64 @@ function escapeHtml(value) {
 	const div = document.createElement("div");
 	div.textContent = value ?? "";
 	return div.innerHTML;
+}
+
+/** Lowercases and strips diacritics so "peron" matches "Perón". */
+function fold(value) {
+	return (value ?? "")
+		.toLowerCase()
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Folds char by char, keeping a map from folded index back to the
+ *  original index (one source char can fold into several, e.g. "ñ"). */
+function buildFolded(text) {
+	let folded = "";
+	const map = [];
+	for (let i = 0; i < text.length; i++) {
+		for (const c of fold(text[i])) {
+			folded += c;
+			map.push(i);
+		}
+	}
+	return { folded, map };
+}
+
+/** Escapes the text and wraps every search-word occurrence in <mark>,
+ *  matching accent-insensitively against the original string. */
+function markMatches(text) {
+	const source = text ?? "";
+	if (searchWords.length === 0) return escapeHtml(source);
+
+	const { folded, map } = buildFolded(source);
+	const ranges = [];
+	for (const word of searchWords) {
+		let from = 0;
+		let idx = folded.indexOf(word, from);
+		while (idx !== -1) {
+			const start = map[idx];
+			const end = map[idx + word.length - 1] + 1;
+			ranges.push([start, end]);
+			from = idx + word.length;
+			idx = folded.indexOf(word, from);
+		}
+	}
+	if (ranges.length === 0) return escapeHtml(source);
+
+	ranges.sort((a, b) => a[0] - b[0]);
+	const merged = [ranges[0]];
+	for (const [start, end] of ranges.slice(1)) {
+		const last = merged[merged.length - 1];
+		if (start <= last[1]) last[1] = Math.max(last[1], end);
+		else merged.push([start, end]);
+	}
+
+	let html = "";
+	let cursor = 0;
+	for (const [start, end] of merged) {
+		html += `${escapeHtml(source.slice(cursor, start))}<mark>${escapeHtml(source.slice(start, end))}</mark>`;
+		cursor = end;
+	}
+	return html + escapeHtml(source.slice(cursor));
 }
