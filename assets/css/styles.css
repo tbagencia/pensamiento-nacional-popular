@@ -523,6 +523,52 @@ a {
 	box-shadow: 0 0 0 2px var(--surface-warm);
 }
 
+/* Tech reads as metadata, not protagonists: small mono tags instead of
+   the gold-node list reserved for people. */
+.credits-tech {
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3xs);
+	padding: 0;
+	margin: var(--space-2xs) 0 0;
+}
+
+.credits-tech li {
+	font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+	font-size: var(--text--2);
+	color: var(--muted);
+	border: 1px solid var(--line);
+	border-radius: 0.375em;
+	padding: var(--space-3xs) var(--space-2xs);
+	background: color-mix(in srgb, var(--paper) 60%, transparent);
+}
+
+.credits-license {
+	font-size: var(--text--1);
+	color: var(--muted);
+}
+
+/* Discreet repo link replacing the old full-width primary button. */
+.credits-repo {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-3xs);
+	font-family: var(--font-ui);
+	font-size: var(--text--1);
+	color: var(--muted);
+	text-decoration: none;
+	border-block-end: 1px solid transparent;
+	transition:
+		color 0.2s ease,
+		border-color 0.2s ease;
+}
+
+.credits-repo:hover {
+	color: var(--brand);
+	border-block-end-color: var(--brand);
+}
+
 .tagline {
 	max-inline-size: 44ch;
 	margin: 0 auto var(--space-m);
