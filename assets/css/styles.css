@@ -97,6 +97,11 @@ a {
 	color: var(--brand);
 }
 
+/* Utility: keeps a multi-word phrase on one line. */
+.nowrap {
+	white-space: nowrap;
+}
+
 /* Utility: keyboard-only skip link, visible while focused. */
 .skip-link {
 	position: absolute;
@@ -1748,6 +1753,18 @@ input[readonly] {
 
 	.search-bar[data-state="collapsed"] input::placeholder {
 		opacity: 1;
+	}
+
+	/* The rail is narrow: the full hint fits at one type step down,
+     with the idle right padding trimmed (the clear button only shows
+     once there is text). */
+	.search-bar input[type="search"],
+	.search-bar[data-state="collapsed"] input[type="search"] {
+		padding-inline-end: var(--space-m);
+	}
+
+	.search-bar input::placeholder {
+		font-size: var(--text--1);
 	}
 
 	/* In the rail the input is a plain text field: the hero/chip

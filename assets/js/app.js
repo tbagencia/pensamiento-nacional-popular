@@ -252,6 +252,15 @@ function setupSearch() {
 		if (e.target.closest('[data-action="clear-type"]')) clearTypeFilter();
 	});
 
+	// The desktop rail is too narrow for the full hint.
+	const syncPlaceholder = () => {
+		searchInput.placeholder = desktopRail.matches
+			? "Autor o término…"
+			: "Ingresá un autor o término…";
+	};
+	syncPlaceholder();
+	desktopRail.addEventListener("change", syncPlaceholder);
+
 	refreshSearchContext();
 	window.addEventListener("scroll", refreshSearchContext, { passive: true });
 }
