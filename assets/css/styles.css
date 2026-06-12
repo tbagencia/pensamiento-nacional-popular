@@ -841,12 +841,26 @@ a {
 	color: #fff;
 }
 
+/* "Todos" is not another filter but the way out of one: while inactive
+   it dresses as a quiet action — borderless, underlined — not a state. */
+.type-pill-all:not([aria-pressed="true"]) {
+	border-color: transparent;
+	text-decoration: underline;
+	text-decoration-color: color-mix(in srgb, var(--muted) 55%, transparent);
+	text-underline-offset: 3px;
+}
+
 /* ---------- Block: search ---------- */
 
 /* Composition: groups search + type pills. Transparent on mobile;
    on desktop it becomes the sticky right-gutter rail. */
 .filter-rail {
 	display: contents;
+}
+
+/* Hidden until the desktop rail media query brings it in. */
+.author-nav {
+	display: none;
 }
 
 /* On mobile the search floats at the top-left corner, mirroring the
@@ -2557,5 +2571,16 @@ input[readonly] {
 	.type-pill {
 		font-size: var(--text--2);
 		padding: 0.25em 0.7em;
+	}
+
+	/* Author pills exist only here: on mobile a row of 20+ names would
+	   bury the timeline. Same pill language as the type filter. */
+	.author-nav:not([hidden]) {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-3xs);
+		margin-block-start: var(--space-s);
+		padding-block-start: var(--space-s);
+		border-block-start: 1px solid var(--line);
 	}
 }

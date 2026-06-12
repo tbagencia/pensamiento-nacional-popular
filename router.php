@@ -32,6 +32,18 @@ if (preg_match('#^/tipo(/.*)?$#', $path)) {
     return true;
 }
 
+if (preg_match('#^/autor/[a-z0-9-]+/?$#', $path)) {
+    header('Content-Type: text/html; charset=utf-8');
+    readfile(__DIR__ . '/index.html');
+    return true;
+}
+
+// A slug-less /autor has nothing to filter: send it home.
+if (preg_match('#^/autor(/.*)?$#', $path)) {
+    header('Location: /', true, 302);
+    return true;
+}
+
 if (preg_match('#^/cargar(/[0-9]{4})?/?$#', $path)) {
     header('Content-Type: text/html; charset=utf-8');
     readfile(__DIR__ . '/cargar.html');

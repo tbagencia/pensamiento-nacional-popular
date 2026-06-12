@@ -39,7 +39,8 @@ updateExcerptCounter();
 // near-duplicates. Free text is still allowed for new authors.
 fetch('/api/authors.php')
   .then((res) => res.json())
-  .then(({ authors }) => initAuthorTags(form.elements.author, authors ?? []))
+  .then(({ authors }) =>
+    initAuthorTags(form.elements.author, (authors ?? []).map((a) => a.name)))
   .catch(() => {});
 
 fetch('/api/session.php')

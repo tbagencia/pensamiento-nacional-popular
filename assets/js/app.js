@@ -10,6 +10,7 @@ const timelineEl = document.getElementById("timeline");
 const statusEl = document.getElementById("status");
 const yearNav = document.querySelector(".year-nav");
 const typeNav = document.getElementById("type-nav");
+const authorNav = document.getElementById("author-nav");
 const searchBar = document.querySelector(".search-bar");
 const searchInput = document.getElementById("search-input");
 const searchClear = document.getElementById("search-clear");
@@ -27,7 +28,10 @@ const TYPE_LABELS = {
 };
 
 let allResources = [];
+let allAuthors = [];
 let activeType = null;
+let activeAuthor = null;
+let authorNavExpanded = false;
 let searchWords = [];
 let spyLine = 0;
 let spyTicking = false;
@@ -39,6 +43,9 @@ let revealObserver = null;
 const EXCERPT_COLLAPSE_LENGTH = 320;
 const YEAR_PATH = /^\/linea\/(\d{4})\/?$/;
 const TYPE_PATH = /^\/tipo\/([a-z]+)\/?$/;
+const AUTHOR_PATH = /^\/autor\/([a-z0-9-]+)\/?$/;
+// Authors below this many documents collapse behind the "+N más" pill.
+const FREQUENT_AUTHOR_MIN_DOCS = 2;
 const prefersReducedMotion = window.matchMedia(
 	"(prefers-reduced-motion: reduce)",
 );
@@ -50,12 +57,19 @@ init();
 
 async function init() {
 	try {
-		const res = await fetch("/api/resources.php");
+		const [res, authorsRes] = await Promise.all([
+			fetch("/api/resources.php"),
+			fetch("/api/authors.php"),
+		]);
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 		({ resources: allResources } = await res.json());
+		// The author filter is an extra: without it the timeline still works.
+		allAuthors = authorsRes.ok ? (await authorsRes.json()).authors : [];
 
 		activeType = typeFromUrl();
+		activeAuthor = authorFromUrl();
 		buildTypeNav();
+		buildAuthorNav();
 		setupSearch();
 		setupYearNavClicks();
 		setupNavMetrics();
@@ -78,6 +92,14 @@ function currentResources() {
 	let list = activeType
 		? allResources.filter((r) => r.type === activeType)
 		: allResources;
+
+	// The author label is composed from the linked author names joined
+	// by ", " — splitting it back recovers them exactly.
+	if (activeAuthor) {
+		list = list.filter((r) =>
+			r.author.split(", ").includes(activeAuthor.name),
+		);
+	}
 
 	if (searchWords.length > 0) {
 		list = list.filter((r) => {
@@ -162,10 +184,10 @@ function renderTimeline(resources) {
 /** Friendly no-results view with one-tap ways out of the dead end. */
 function renderEmptyState() {
 	const hint = searchWords.length
-		? activeType
-			? "Probá con otras palabras o quitá el filtro de tipo."
+		? activeType || activeAuthor
+			? "Probá con otras palabras o quitá los filtros."
 			: "Probá con menos palabras o con un término distinto."
-		: "Todavía no hay documentos de este tipo en el archivo.";
+		: "Todavía no hay documentos que coincidan con este filtro.";
 	return `
 		<li class="empty-state">
 			<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
@@ -178,6 +200,7 @@ function renderEmptyState() {
 			<div class="empty-state-actions">
 				${searchWords.length ? '<button type="button" class="btn btn-primary" data-action="clear-search">Limpiar búsqueda</button>' : ""}
 				${activeType ? '<button type="button" class="btn btn-ghost" data-action="clear-type">Ver todos los tipos</button>' : ""}
+				${activeAuthor ? '<button type="button" class="btn btn-ghost" data-action="clear-author">Ver todos los autores</button>' : ""}
 			</div>
 		</li>`;
 }
@@ -207,7 +230,7 @@ function setupYearNavClicks() {
 		history.pushState(
 			null,
 			"",
-			activeType ? `/tipo/${activeType}` : `/linea/${year}`,
+			activeAuthor || activeType ? filterUrl() : `/linea/${year}`,
 		);
 		scrollToYear(year, prefersReducedMotion.matches ? "auto" : "smooth");
 	});
@@ -256,6 +279,7 @@ function setupSearch() {
 	timelineEl.addEventListener("click", (e) => {
 		if (e.target.closest('[data-action="clear-search"]')) clearSearch();
 		if (e.target.closest('[data-action="clear-type"]')) clearTypeFilter();
+		if (e.target.closest('[data-action="clear-author"]')) clearAuthorFilter();
 	});
 
 	// The desktop rail is too narrow for the full hint.
@@ -289,7 +313,7 @@ function clearTypeFilter() {
 	activeType = null;
 	refreshTypePills();
 	renderAll();
-	history.replaceState(null, "", "/");
+	history.replaceState(null, "", filterUrl());
 }
 
 /** Over the dark hero header the collapsed circle dresses like the
@@ -333,6 +357,17 @@ function applySearch() {
 
 /* ---------- Type filter ---------- */
 
+/** After a filter change, land at the start of the results instead of
+ *  the absolute top: jumping to the hero hides the freshly filtered
+ *  list. Already above the results? Stay put. "instant" on purpose:
+ *  "auto" defers to the CSS scroll-behavior (smooth here), and that
+ *  animation gets cancelled by the re-render of the cards. */
+function scrollToResults() {
+	const top =
+		timelineEl.getBoundingClientRect().top + window.scrollY - 24;
+	if (window.scrollY > top) window.scrollTo({ top, behavior: "instant" });
+}
+
 function buildTypeNav() {
 	const present = new Set(allResources.map((r) => r.type));
 	const types = Object.keys(TYPE_LABELS).filter((t) => present.has(t));
@@ -342,9 +377,9 @@ function buildTypeNav() {
 	for (const type of ["all", ...types]) {
 		const pill = document.createElement("button");
 		pill.type = "button";
-		pill.className = "type-pill";
+		pill.className = type === "all" ? "type-pill type-pill-all" : "type-pill";
 		pill.dataset.type = type;
-		pill.textContent = type === "all" ? "Todos" : TYPE_LABELS[type];
+		pill.textContent = type === "all" ? "Todos los tipos" : TYPE_LABELS[type];
 		typeNav.appendChild(pill);
 	}
 	refreshTypePills();
@@ -359,8 +394,8 @@ function buildTypeNav() {
 		activeType = activeType === picked ? null : picked;
 		refreshTypePills();
 		renderAll();
-		history.replaceState(null, "", activeType ? `/tipo/${activeType}` : "/");
-		window.scrollTo({ top: 0, behavior: "auto" });
+		history.replaceState(null, "", filterUrl());
+		scrollToResults();
 	});
 }
 
@@ -377,6 +412,99 @@ function refreshTypePills() {
 function typeFromUrl() {
 	const tipo = location.pathname.match(TYPE_PATH)?.[1];
 	return tipo && Object.hasOwn(TYPE_LABELS, tipo) ? tipo : null;
+}
+
+/* ---------- Author filter ---------- */
+
+function buildAuthorNav() {
+	if (!authorNav || allAuthors.length < 2) return;
+	renderAuthorPills();
+	authorNav.hidden = false;
+
+	authorNav.addEventListener("click", (e) => {
+		if (e.target.closest('[data-action="expand-authors"]')) {
+			authorNavExpanded = true;
+			renderAuthorPills();
+			return;
+		}
+		const pill = e.target.closest(".type-pill[data-slug]");
+		if (!pill) return;
+
+		// Clicking the active filter (or "Todos") returns to the unfiltered view.
+		const picked = allAuthors.find((a) => a.slug === pill.dataset.slug);
+		activeAuthor = picked && activeAuthor?.slug !== picked.slug ? picked : null;
+		refreshAuthorPills();
+		renderAll();
+		history.replaceState(null, "", filterUrl());
+		scrollToResults();
+	});
+}
+
+function renderAuthorPills() {
+	authorNav.innerHTML = "";
+	const frequent = allAuthors.filter(
+		(a) => a.count >= FREQUENT_AUTHOR_MIN_DOCS,
+	);
+	const rest = allAuthors
+		.filter((a) => a.count < FREQUENT_AUTHOR_MIN_DOCS)
+		.sort((a, b) => a.name.localeCompare(b.name, "es"));
+	const shown = authorNavExpanded ? [...frequent, ...rest] : [...frequent];
+
+	// An active author arriving by URL must be visible even if collapsed.
+	if (activeAuthor && !shown.some((a) => a.slug === activeAuthor.slug)) {
+		shown.push(activeAuthor);
+	}
+
+	for (const author of [{ name: "Todos los autores", slug: "all" }, ...shown]) {
+		const pill = document.createElement("button");
+		pill.type = "button";
+		pill.className =
+			author.slug === "all" ? "type-pill type-pill-all" : "type-pill";
+		pill.dataset.slug = author.slug;
+		pill.textContent = author.name;
+		authorNav.appendChild(pill);
+	}
+
+	const hidden = allAuthors.length - shown.length;
+	if (hidden > 0) {
+		const more = document.createElement("button");
+		more.type = "button";
+		more.className = "type-pill";
+		more.dataset.action = "expand-authors";
+		more.textContent = `+${hidden} más`;
+		authorNav.appendChild(more);
+	}
+	refreshAuthorPills();
+}
+
+function refreshAuthorPills() {
+	for (const p of authorNav.querySelectorAll(".type-pill[data-slug]")) {
+		p.setAttribute(
+			"aria-pressed",
+			String(p.dataset.slug === (activeAuthor?.slug ?? "all")),
+		);
+	}
+}
+
+/** Reads the /autor/{slug} filter from the URL, ignoring unknown slugs. */
+function authorFromUrl() {
+	const slug = location.pathname.match(AUTHOR_PATH)?.[1];
+	return slug ? (allAuthors.find((a) => a.slug === slug) ?? null) : null;
+}
+
+function clearAuthorFilter() {
+	if (!activeAuthor) return;
+	activeAuthor = null;
+	refreshAuthorPills();
+	renderAll();
+	history.replaceState(null, "", filterUrl());
+}
+
+/** One concept per URL: the author filter wins, then the type filter. */
+function filterUrl() {
+	if (activeAuthor) return `/autor/${activeAuthor.slug}`;
+	if (activeType) return `/tipo/${activeType}`;
+	return "/";
 }
 
 function scrollToYear(year, behavior) {
@@ -437,23 +565,27 @@ function goToYearFromUrl(smooth) {
 function setupHistory() {
 	window.addEventListener("popstate", () => {
 		const tipo = typeFromUrl();
-		if (tipo !== activeType) {
+		const author = authorFromUrl();
+		if (tipo !== activeType || author?.slug !== activeAuthor?.slug) {
 			activeType = tipo;
+			activeAuthor = author;
 			refreshTypePills();
+			refreshAuthorPills();
 			renderAll();
 		}
 		goToYearFromUrl(true);
 	});
 }
 
-/** Mirrors the view into the address bar: the active type filter wins,
+/** Mirrors the view into the address bar: the active filter wins,
  *  otherwise the year being scrolled (one concept per URL). */
 function syncUrl(year) {
-	const target = activeType
-		? `/tipo/${activeType}`
-		: year === "all"
-			? "/"
-			: `/linea/${year}`;
+	const target =
+		activeAuthor || activeType
+			? filterUrl()
+			: year === "all"
+				? "/"
+				: `/linea/${year}`;
 	if (location.pathname !== target) {
 		history.replaceState(null, "", target);
 	}

@@ -257,11 +257,21 @@ section('Authors API');
 $res = request('GET', '/api/authors.php');
 check($res['status'] === 200, 'authors API responds 200');
 $authors = $res['json']['authors'] ?? [];
-check(in_array('Arturo Jauretche', $authors, true), 'canonical authors include individuals behind collectives');
+$names = array_column($authors, 'name');
+check(in_array('Arturo Jauretche', $names, true), 'canonical authors include individuals behind collectives');
 check(
-    !in_array('FORJA (Jauretche, Scalabrini Ortiz y otros)', $authors, true),
+    !in_array('FORJA (Jauretche, Scalabrini Ortiz y otros)', $names, true),
     'display-only collective strings are not suggested'
 );
+check(
+    ($authors[0]['name'] ?? '') === 'Juan Domingo Perón' && ($authors[0]['count'] ?? 0) >= 5,
+    'authors come with counts, most published first',
+    $authors[0] ?? null
+);
+check(($authors[0]['slug'] ?? '') === 'juan-domingo-peron', 'authors carry their URL slug');
+
+check(request('GET', '/autor/juan-domingo-peron')['status'] === 200, 'author filter URL responds');
+check(request('GET', '/autor/')['status'] === 302, 'slug-less /autor redirects home');
 
 section('Sitemap');
 $res = request('GET', '/sitemap.xml');
