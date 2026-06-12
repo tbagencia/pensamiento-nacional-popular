@@ -50,7 +50,7 @@
 	];
 
 	let root = null;
-	let highlight = null;
+	let dims = null;
 	let tip = null;
 	let current = 0;
 
@@ -64,7 +64,10 @@
 		root = document.createElement("div");
 		root.className = "tour";
 		root.innerHTML = `
-			<div class="tour-highlight" aria-hidden="true"></div>
+			<div class="tour-dim" aria-hidden="true"></div>
+			<div class="tour-dim" aria-hidden="true"></div>
+			<div class="tour-dim" aria-hidden="true"></div>
+			<div class="tour-dim" aria-hidden="true"></div>
 			<div class="tour-tip" role="dialog" aria-modal="false" aria-labelledby="tour-title" tabindex="-1">
 				<h2 id="tour-title" class="tour-tip-title"></h2>
 				<p class="tour-tip-text"></p>
@@ -77,12 +80,24 @@
 			</div>
 		`;
 		document.body.appendChild(root);
-		highlight = root.querySelector(".tour-highlight");
+		dims = [...root.querySelectorAll(".tour-dim")];
 		tip = root.querySelector(".tour-tip");
 
 		root.querySelector("[data-tour-skip]").addEventListener("click", end);
 		root.querySelector("[data-tour-prev]").addEventListener("click", () => move(-1));
 		root.querySelector("[data-tour-next]").addEventListener("click", () => move(1));
+	};
+
+	/** Four panels around the cut-out: giant box-shadows mis-repaint on scroll. */
+	const placeDim = (hole) => {
+		const vw = window.innerWidth;
+		const vh = window.innerHeight;
+		const top = Math.max(0, hole.top);
+		const bottom = Math.min(vh, hole.bottom);
+		dims[0].style.cssText = `top: 0; left: 0; width: ${vw}px; height: ${top}px;`;
+		dims[1].style.cssText = `top: ${bottom}px; left: 0; width: ${vw}px; height: ${Math.max(0, vh - bottom)}px;`;
+		dims[2].style.cssText = `top: ${top}px; left: 0; width: ${Math.max(0, hole.left)}px; height: ${Math.max(0, bottom - top)}px;`;
+		dims[3].style.cssText = `top: ${top}px; left: ${hole.right}px; width: ${Math.max(0, vw - hole.right)}px; height: ${Math.max(0, bottom - top)}px;`;
 	};
 
 	const position = () => {
@@ -91,7 +106,7 @@
 
 		if (!target || !isVisible(target)) {
 			// Centered welcome step: zero-size cut-out keeps the full dim.
-			highlight.style.cssText = "top: 50vh; left: 50vw; width: 0; height: 0;";
+			placeDim({ top: 0, bottom: 0, left: 0, right: 0 });
 			tip.dataset.placement = "center";
 			tip.style.top = "";
 			tip.style.left = "";
@@ -100,7 +115,12 @@
 
 		const rect = target.getBoundingClientRect();
 		const pad = HIGHLIGHT_PADDING;
-		highlight.style.cssText = `top: ${rect.top - pad}px; left: ${rect.left - pad}px; width: ${rect.width + pad * 2}px; height: ${rect.height + pad * 2}px;`;
+		placeDim({
+			top: rect.top - pad,
+			bottom: rect.bottom + pad,
+			left: rect.left - pad,
+			right: rect.right + pad,
+		});
 
 		tip.dataset.placement = "anchored";
 		const tipRect = tip.getBoundingClientRect();

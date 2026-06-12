@@ -1705,11 +1705,10 @@ input[readonly] {
 	pointer-events: none;
 }
 
-/* The cut-out: a giant shadow dims everything around the target. */
-.tour-highlight {
+/* Four panels dim everything around the cut-out; sized by tour.js. */
+.tour-dim {
 	position: fixed;
-	border-radius: var(--radius);
-	box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--brand-deep) 78%, transparent);
+	background: color-mix(in srgb, var(--brand-deep) 78%, transparent);
 }
 
 .tour-tip {
