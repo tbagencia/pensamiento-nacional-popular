@@ -10,7 +10,8 @@ require_once __DIR__ . '/db.php';
 
 $base = base_url();
 $rows = db()
-    ->query("SELECT id, title, author, created_at FROM resources WHERE status = 'approved' ORDER BY id")
+    ->query("SELECT id, title, " . author_label_sql('resources') . " AS author, created_at
+             FROM resources WHERE status = 'approved' ORDER BY id")
     ->fetchAll(PDO::FETCH_ASSOC);
 
 $lastmod = fn (string $createdAt): string => substr($createdAt, 0, 10);

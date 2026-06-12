@@ -4,7 +4,8 @@
 require_once __DIR__ . '/db.php';
 
 $stmt = db()->query(
-    "SELECT id, title, author, year, type, excerpt, source_url
+    "SELECT id, title, " . author_label_sql('resources') . " AS author,
+            year, type, excerpt, source_url
      FROM resources
      WHERE status = 'approved'
      ORDER BY year ASC, id ASC"

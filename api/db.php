@@ -21,7 +21,6 @@ function db(): PDO
     $pdo->exec("CREATE TABLE IF NOT EXISTS resources (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
-        author TEXT NOT NULL,
         year INTEGER NOT NULL,
         type TEXT NOT NULL DEFAULT 'texto',
         excerpt TEXT NOT NULL,
@@ -34,77 +33,165 @@ function db(): PDO
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resources_year ON resources(year)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status)');
 
-    // Canonical author names per resource. `resources.author` stays the
-    // display string ("FORJA (Jauretche, Scalabrini Ortiz y otros)");
-    // these rows carry the individual names matching is done against.
+    // Authors are first-class rows: the id is the stable identity, the
+    // name is just its current spelling. A document's author label is
+    // always composed from its linked authors — never stored twice.
+    $pdo->exec("CREATE TABLE IF NOT EXISTS authors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
+    )");
     $pdo->exec("CREATE TABLE IF NOT EXISTS resource_authors (
         resource_id INTEGER NOT NULL,
-        author TEXT NOT NULL,
-        PRIMARY KEY (resource_id, author)
+        author_id INTEGER NOT NULL,
+        position INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (resource_id, author_id)
     )");
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resource_authors_author ON resource_authors(author)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resource_authors_author ON resource_authors(author_id)');
 
     if ($isNew) {
         seed($pdo);
+        $pdo->exec('PRAGMA user_version = 3');
     }
     backfill_seed_source_urls($pdo);
-    backfill_resource_authors($pdo);
+    migrate_to_author_ids($pdo);
     return $pdo;
 }
 
 /**
- * Canonical author names behind a display author string.
- * Multi-author works list their authors separated by commas, each one
- * becoming a name matching runs against; a collective credited as a
- * group ("FORJA") is a single name like any other. The map only covers
- * legacy seed strings written before this convention existed.
+ * Author names out of a comma-separated input string. Commas inside
+ * parentheses do not split, mirroring the author-tags front end where
+ * a comma turns the text into a new pill.
  */
-function canonical_authors(string $author): array
+function canonical_authors(string $authors): array
 {
-    $map = [
-        'FORJA (Jauretche, Scalabrini Ortiz y otros)' => ['Arturo Jauretche', 'Raúl Scalabrini Ortiz'],
-        'Deodoro Roca y la Federación Universitaria de Córdoba' => ['Deodoro Roca'],
-    ];
-    if (isset($map[$author])) {
-        return $map[$author];
-    }
-    // Commas split authors, except inside parentheses, mirroring the
-    // author-tags input on the front end.
     $names = array_values(array_filter(array_map(
         'trim',
-        preg_split('/,(?![^()]*\))/', $author)
+        preg_split('/,(?![^()]*\))/', $authors)
     )));
-    return $names ?: [$author];
+    return $names ?: [trim($authors)];
 }
 
-/** Replaces the canonical author rows of a resource from its display string. */
-function set_resource_authors(PDO $pdo, int $id, string $author): void
+/** Replaces a resource's author links from a comma-separated names string. */
+function set_resource_authors(PDO $pdo, int $id, string $authors): void
 {
     $pdo->prepare('DELETE FROM resource_authors WHERE resource_id = ?')->execute([$id]);
-    $stmt = $pdo->prepare('INSERT OR IGNORE INTO resource_authors (resource_id, author) VALUES (?, ?)');
-    foreach (canonical_authors($author) as $name) {
-        $stmt->execute([$id, $name]);
+    $insert = $pdo->prepare('INSERT OR IGNORE INTO authors (name) VALUES (?)');
+    $select = $pdo->prepare('SELECT id FROM authors WHERE name = ?');
+    $link = $pdo->prepare(
+        'INSERT OR IGNORE INTO resource_authors (resource_id, author_id, position) VALUES (?, ?, ?)'
+    );
+    foreach (canonical_authors($authors) as $position => $name) {
+        $insert->execute([$name]);
+        $select->execute([$name]);
+        $link->execute([$id, (int) $select->fetchColumn(), $position]);
     }
+}
+
+/** Author names of a resource, in display order. */
+function resource_author_names(PDO $pdo, int $id): array
+{
+    $stmt = $pdo->prepare(
+        'SELECT a.name FROM resource_authors ra
+         JOIN authors a ON a.id = ra.author_id
+         WHERE ra.resource_id = ? ORDER BY ra.position'
+    );
+    $stmt->execute([$id]);
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
 /**
- * One-off migration (PRAGMA user_version 2): populates resource_authors
- * for databases created before authors were normalized. The Perón-Cooke
- * letters also get Perón, who co-wrote them but is not the display author.
+ * SQL expression composing a resource's author label ("Name, Name") from
+ * its linked authors, for use in SELECT lists. $table is the alias of
+ * the resources table in the outer query.
  */
-function backfill_resource_authors(PDO $pdo): void
+function author_label_sql(string $table): string
 {
-    if ((int) $pdo->query('PRAGMA user_version')->fetchColumn() >= 2) {
+    return "(SELECT GROUP_CONCAT(name, ', ') FROM (
+        SELECT a.name FROM resource_authors ra
+        JOIN authors a ON a.id = ra.author_id
+        WHERE ra.resource_id = $table.id
+        ORDER BY ra.position
+    ))";
+}
+
+/**
+ * One-off migration (PRAGMA user_version 3): authors become first-class
+ * rows. Canonical name strings (v2) or legacy display strings (v0/v1)
+ * turn into authors + id links, and resources drops its author column —
+ * the label is composed from the linked authors from here on.
+ */
+function migrate_to_author_ids(PDO $pdo): void
+{
+    if ((int) $pdo->query('PRAGMA user_version')->fetchColumn() >= 3) {
         return;
     }
-    foreach ($pdo->query('SELECT id, author, title FROM resources')->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        set_resource_authors($pdo, (int) $row['id'], $row['author']);
-        if ($row['title'] === 'Cartas Perón-Cooke') {
-            $pdo->prepare('INSERT OR IGNORE INTO resource_authors (resource_id, author) VALUES (?, ?)')
-                ->execute([(int) $row['id'], 'Juan Domingo Perón']);
+    $tableColumns = fn (string $table): array => $pdo
+        ->query("SELECT name FROM pragma_table_info('$table')")
+        ->fetchAll(PDO::FETCH_COLUMN);
+
+    $pdo->exec('BEGIN');
+
+    // v2 shape: resource_authors holds canonical names. Collect them
+    // (they carry moderator fixes and the Perón-Cooke co-authorship)
+    // and rebuild the table in its id shape.
+    $names = [];
+    if (in_array('author', $tableColumns('resource_authors'), true)) {
+        foreach ($pdo->query('SELECT resource_id, author FROM resource_authors ORDER BY rowid') as $row) {
+            $names[(int) $row['resource_id']][] = $row['author'];
         }
+        $pdo->exec('DROP TABLE resource_authors');
+        $pdo->exec("CREATE TABLE resource_authors (
+            resource_id INTEGER NOT NULL,
+            author_id INTEGER NOT NULL,
+            position INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (resource_id, author_id)
+        )");
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resource_authors_author ON resource_authors(author_id)');
     }
-    $pdo->exec('PRAGMA user_version = 2');
+
+    if (in_array('author', $tableColumns('resources'), true)) {
+        // v0/v1 shape: no canonical rows yet, derive names from the
+        // display string. The map covers legacy seed spellings.
+        if ($names === []) {
+            $map = [
+                'FORJA (Jauretche, Scalabrini Ortiz y otros)' => 'Arturo Jauretche, Raúl Scalabrini Ortiz',
+                'Deodoro Roca y la Federación Universitaria de Córdoba' => 'Deodoro Roca',
+            ];
+            foreach ($pdo->query('SELECT id, author, title FROM resources') as $row) {
+                $authors = $map[$row['author']] ?? $row['author'];
+                if ($row['title'] === 'Cartas Perón-Cooke' && !str_contains($authors, 'Juan Domingo Perón')) {
+                    $authors .= ', Juan Domingo Perón';
+                }
+                $names[(int) $row['id']] = canonical_authors($authors);
+            }
+        }
+
+        $pdo->exec("CREATE TABLE resources_v3 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            year INTEGER NOT NULL,
+            type TEXT NOT NULL DEFAULT 'texto',
+            excerpt TEXT NOT NULL,
+            source_url TEXT,
+            submitter_email TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending_email',
+            verify_token TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )");
+        $pdo->exec('INSERT INTO resources_v3 (id, title, year, type, excerpt, source_url, submitter_email, status, verify_token, created_at)
+                    SELECT id, title, year, type, excerpt, source_url, submitter_email, status, verify_token, created_at FROM resources');
+        $pdo->exec('DROP TABLE resources');
+        $pdo->exec('ALTER TABLE resources_v3 RENAME TO resources');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resources_year ON resources(year)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status)');
+    }
+
+    foreach ($names as $resourceId => $resourceNames) {
+        set_resource_authors($pdo, $resourceId, implode(', ', $resourceNames));
+    }
+
+    $pdo->exec('PRAGMA user_version = 3');
+    $pdo->exec('COMMIT');
 }
 
 /**
@@ -133,11 +220,12 @@ function backfill_seed_source_urls(PDO $pdo): void
 function seed(PDO $pdo): void
 {
     $stmt = $pdo->prepare(
-        "INSERT INTO resources (title, author, year, type, excerpt, source_url, submitter_email, status)
-         VALUES (?, ?, ?, ?, ?, ?, 'seed@sitio', 'approved')"
+        "INSERT INTO resources (title, year, type, excerpt, source_url, submitter_email, status)
+         VALUES (?, ?, ?, ?, ?, 'seed@sitio', 'approved')"
     );
-    foreach (seed_entries() as [$year, $author, $type, $title, $excerpt, $url]) {
-        $stmt->execute([$title, $author, $year, $type, $excerpt, $url]);
+    foreach (seed_entries() as [$year, $authors, $type, $title, $excerpt, $url]) {
+        $stmt->execute([$title, $year, $type, $excerpt, $url]);
+        set_resource_authors($pdo, (int) $pdo->lastInsertId(), $authors);
     }
 }
 
@@ -157,7 +245,7 @@ function seed_entries(): array
         [1931, 'Raúl Scalabrini Ortiz', 'ensayo', 'El hombre que está solo y espera',
          'Ensayo sobre el "hombre de Corrientes y Esmeralda", arquetipo del porteño y del ser nacional. Punto de partida de la obra de Scalabrini sobre la dependencia económica argentina.',
          'https://www.perio.unlp.edu.ar/catedras/escrituraargentina/wp-content/uploads/sites/150/2020/07/5.-Ra%C3%BAl-Scalabrini-Ortiz-El-hombre-que-est%C3%A1-solo-y-espera.pdf'],
-        [1935, 'FORJA (Jauretche, Scalabrini Ortiz y otros)', 'manifiesto', 'Manifiesto fundacional de FORJA',
+        [1935, 'Arturo Jauretche, Raúl Scalabrini Ortiz', 'manifiesto', 'Manifiesto fundacional de FORJA',
          'La Fuerza de Orientación Radical de la Joven Argentina denuncia la Década Infame: "Somos una Argentina colonial, queremos ser una Argentina libre".',
          'https://elhistoriador.com.ar/manifiesto-de-la-fundacion-de-forja/'],
         [1945, 'Juan Domingo Perón', 'discurso', 'Discurso del 17 de octubre',
@@ -172,7 +260,7 @@ function seed_entries(): array
         [1951, 'Eva Perón', 'discurso', 'El Renunciamiento',
          'En el Cabildo Abierto del Justicialismo, ante una multitud que pedía su candidatura a vicepresidenta, Evita renuncia a los honores: "No renuncio a la lucha ni al trabajo, renuncio a los honores".',
          'https://elhistoriador.com.ar/el-renunciamiento-de-evita-31-de-agosto-de-1951/'],
-        [1957, 'John William Cooke', 'carta', 'Cartas Perón-Cooke',
+        [1957, 'John William Cooke, Juan Domingo Perón', 'carta', 'Cartas Perón-Cooke',
          'Correspondencia entre Perón en el exilio y Cooke, su delegado en Argentina, durante la resistencia peronista. Documento clave de la radicalización del movimiento.',
          'https://cedinpe.unsam.edu.ar/content/correspondencia-per%C3%B3n-cooke'],
         [1968, 'Arturo Jauretche', 'libro', 'Manual de zonceras argentinas',
@@ -199,7 +287,7 @@ function seed_entries(): array
         [1912, 'Roque Sáenz Peña', 'discurso', '"Quiera el pueblo votar"',
          'Mensaje en defensa de la ley de sufragio secreto, universal y obligatorio que termina con el fraude electoral del régimen conservador y abre paso a la democracia de masas.',
          'https://elhistoriador.com.ar/roque-saenz-pena-quiera-el-pueblo-votar/'],
-        [1918, 'Deodoro Roca y la Federación Universitaria de Córdoba', 'manifiesto', 'Manifiesto Liminar de la Reforma Universitaria',
+        [1918, 'Deodoro Roca', 'manifiesto', 'Manifiesto Liminar de la Reforma Universitaria',
          '"Los dolores que quedan son las libertades que faltan": la juventud cordobesa sacude la universidad clerical y elitista, y proyecta la reforma a toda América Latina.',
          'https://es.wikisource.org/wiki/Manifiesto_liminar_de_la_Reforma_Universitaria'],
         [1934, 'Arturo Jauretche', 'poema', 'El Paso de los Libres',

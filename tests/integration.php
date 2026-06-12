@@ -137,6 +137,16 @@ function db(): PDO
     return new PDO('sqlite:' . $dbPath);
 }
 
+/** Linked author names of a resource, in display order. */
+function resource_authors_of(int $resourceId): array
+{
+    return db()->query(
+        "SELECT a.name FROM resource_authors ra
+         JOIN authors a ON a.id = ra.author_id
+         WHERE ra.resource_id = $resourceId ORDER BY ra.position"
+    )->fetchAll(PDO::FETCH_COLUMN);
+}
+
 function submission(array $overrides = []): array
 {
     return array_merge([
@@ -197,7 +207,11 @@ check(request('GET', '/documento/99999')['status'] === 302, 'unknown document re
 
 section('Related documents');
 $peronId = (int) db()->query(
-    "SELECT id FROM resources WHERE author = 'Juan Domingo Perón' AND status = 'approved' ORDER BY id LIMIT 1"
+    "SELECT r.id FROM resources r
+     JOIN resource_authors ra ON ra.resource_id = r.id
+     JOIN authors a ON a.id = ra.author_id
+     WHERE a.name = 'Juan Domingo Perón' AND r.status = 'approved'
+     ORDER BY r.id LIMIT 1"
 )->fetchColumn();
 $location = request('GET', "/documento/$peronId")['headers']['location'] ?? '';
 $res = request('GET', $location);
@@ -225,6 +239,19 @@ check(str_contains($res['body'], 'De los mismos autores'), 'collective document 
 // El Paso de los Libres (1934) is the manifesto's prev neighbour, so
 // it is excluded from related; the zonceras manual takes its slot.
 check(str_contains($res['body'], 'Manual de zonceras argentinas'), 'collective document lists its authors\' works');
+
+// Regression: the heading must come from the linked authors, not from
+// a display string — the letters carry both Cooke and Perón.
+$cartasId = (int) db()->query(
+    "SELECT id FROM resources WHERE title = 'Cartas Perón-Cooke'"
+)->fetchColumn();
+$location = request('GET', "/documento/$cartasId")['headers']['location'] ?? '';
+$res = request('GET', $location);
+check(str_contains($res['body'], 'De los mismos autores'), 'co-authored letters use the neutral heading', $location);
+check(
+    str_contains($res['body'], 'John William Cooke, Juan Domingo Perón'),
+    'author label is composed from the linked authors in order'
+);
 
 section('Authors API');
 $res = request('GET', '/api/authors.php');
@@ -261,7 +288,7 @@ $res = request('POST', '/api/submit.php', [
 check($res['status'] === 201, 'long excerpt within the configured limit is accepted', $res['json'] ?? $res['body']);
 $lastId = (int) db()->query('SELECT MAX(id) FROM resources')->fetchColumn();
 check(
-    db()->query("SELECT author FROM resource_authors WHERE resource_id = $lastId")->fetchColumn() === 'Autora de Prueba',
+    resource_authors_of($lastId) === ['Autora de Prueba'],
     'submission stores its canonical author'
 );
 
@@ -271,10 +298,8 @@ $res = request('POST', '/api/submit.php', [
 ]);
 check($res['status'] === 201, 'multi-author submission is accepted', $res['json'] ?? $res['body']);
 $lastId = (int) db()->query('SELECT MAX(id) FROM resources')->fetchColumn();
-$names = db()->query(
-    "SELECT author FROM resource_authors WHERE resource_id = $lastId ORDER BY author"
-)->fetchAll(PDO::FETCH_COLUMN);
-check($names === ['Autor Dos', 'Autora Una'], 'comma-separated authors become canonical rows', $names);
+$names = resource_authors_of($lastId);
+check($names === ['Autora Una', 'Autor Dos'], 'comma-separated authors become linked author rows in order', $names);
 
 $res = request('POST', '/api/submit.php', ['json' => submission(['website' => 'spam-bot']), 'cookies' => 'visitor']);
 check($res['status'] === 200 && ($res['json']['ok'] ?? false), 'honeypot pretends success');
@@ -416,15 +441,15 @@ check(
     'AJAX edit returns ok with the updated resource',
     $res['json']
 );
-$row = db()->query("SELECT title, author, year, type FROM resources WHERE id = $id")->fetch(PDO::FETCH_ASSOC);
+$row = db()->query("SELECT title, year, type FROM resources WHERE id = $id")->fetch(PDO::FETCH_ASSOC);
 check(
     $row['title'] === 'Título corregido' && (int) $row['year'] === 1950 && $row['type'] === 'carta',
     'edited fields are persisted',
     $row
 );
 check(
-    db()->query("SELECT author FROM resource_authors WHERE resource_id = $id")->fetchColumn() === 'Autora Corregida',
-    'editing the author updates the canonical rows'
+    resource_authors_of($id) === ['Autora Corregida'],
+    'editing the author updates the linked author rows'
 );
 
 $res = request('POST', ADMIN_URL, [

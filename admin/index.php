@@ -67,7 +67,10 @@ if ($isAdmin && in_array($_POST['action'] ?? '', ['approve', 'reject', 'delete',
     }
 
     // Fetched before mutating so approve/reject can notify the submitter.
-    $stmt = $pdo->prepare("SELECT id, title, author, submitter_email FROM resources WHERE id = ?");
+    $stmt = $pdo->prepare(
+        "SELECT id, title, " . author_label_sql('resources') . " AS author, submitter_email
+         FROM resources WHERE id = ?"
+    );
     $stmt->execute([$id]);
     $resource = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
@@ -141,10 +144,10 @@ function edit_resource(PDO $pdo, int $id, array $input, bool $isAjax, array $val
     }
 
     $stmt = $pdo->prepare(
-        "UPDATE resources SET title = ?, author = ?, year = ?, type = ?, excerpt = ?, source_url = ?
+        "UPDATE resources SET title = ?, year = ?, type = ?, excerpt = ?, source_url = ?
          WHERE id = ?"
     );
-    $stmt->execute([$title, $author, $year, $type, $excerpt, $sourceUrl ?: null, $id]);
+    $stmt->execute([$title, $year, $type, $excerpt, $sourceUrl ?: null, $id]);
     set_resource_authors($pdo, $id, $author);
 
     if ($isAjax) {
@@ -153,7 +156,7 @@ function edit_resource(PDO $pdo, int $id, array $input, bool $isAjax, array $val
             'counts' => tab_counts($pdo, $validTabs),
             'resource' => [
                 'title' => $title,
-                'author' => $author,
+                'author' => implode(', ', resource_author_names($pdo, $id)),
                 'year' => $year,
                 'type' => $type,
                 'excerpt' => $excerpt,
@@ -175,7 +178,10 @@ $counts = [];
 if ($isAdmin) {
     $pdo = db();
     $counts = tab_counts($pdo, $validTabs);
-    $stmt = $pdo->prepare("SELECT * FROM resources WHERE status = ? ORDER BY created_at DESC");
+    $stmt = $pdo->prepare(
+        "SELECT *, " . author_label_sql('resources') . " AS author
+         FROM resources WHERE status = ? ORDER BY created_at DESC"
+    );
     $stmt->execute([$tab]);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -345,9 +351,10 @@ function e(?string $s): string
        moderators converge on existing spellings while reviewing. -->
   <script type="application/json" id="author-options"><?= json_encode(
       db()->query(
-          "SELECT DISTINCT ra.author FROM resource_authors ra
+          "SELECT DISTINCT a.name FROM authors a
+           JOIN resource_authors ra ON ra.author_id = a.id
            JOIN resources r ON r.id = ra.resource_id
-           WHERE r.status = 'approved' ORDER BY ra.author"
+           WHERE r.status = 'approved' ORDER BY a.name"
       )->fetchAll(PDO::FETCH_COLUMN),
       JSON_HEX_TAG | JSON_UNESCAPED_UNICODE
   ) ?></script>

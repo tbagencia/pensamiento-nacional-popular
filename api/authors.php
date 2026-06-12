@@ -8,11 +8,12 @@
 require_once __DIR__ . '/db.php';
 
 $authors = db()->query(
-    "SELECT DISTINCT ra.author
-     FROM resource_authors ra
+    "SELECT DISTINCT a.name
+     FROM authors a
+     JOIN resource_authors ra ON ra.author_id = a.id
      JOIN resources r ON r.id = ra.resource_id
      WHERE r.status = 'approved'
-     ORDER BY ra.author"
+     ORDER BY a.name"
 )->fetchAll(PDO::FETCH_COLUMN);
 
 json_response(['authors' => $authors]);

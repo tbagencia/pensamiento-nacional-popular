@@ -72,11 +72,11 @@ if ((int) $stmt->fetchColumn() >= 5) {
 if ($email === ($_SESSION['verified_email'] ?? null)) {
     $isModerator = is_moderator_email($email);
     $stmt = $pdo->prepare(
-        "INSERT INTO resources (title, author, year, type, excerpt, source_url, submitter_email, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO resources (title, year, type, excerpt, source_url, submitter_email, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?)"
     );
     $stmt->execute([
-        $title, $author, $year, $type, $excerpt, $sourceUrl ?: null, $email,
+        $title, $year, $type, $excerpt, $sourceUrl ?: null, $email,
         $isModerator ? 'approved' : 'pending_review',
     ]);
     set_resource_authors($pdo, (int) $pdo->lastInsertId(), $author);
@@ -89,10 +89,10 @@ if ($email === ($_SESSION['verified_email'] ?? null)) {
 $token = bin2hex(random_bytes(32));
 
 $stmt = $pdo->prepare(
-    "INSERT INTO resources (title, author, year, type, excerpt, source_url, submitter_email, status, verify_token)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_email', ?)"
+    "INSERT INTO resources (title, year, type, excerpt, source_url, submitter_email, status, verify_token)
+     VALUES (?, ?, ?, ?, ?, ?, 'pending_email', ?)"
 );
-$stmt->execute([$title, $author, $year, $type, $excerpt, $sourceUrl ?: null, $email, $token]);
+$stmt->execute([$title, $year, $type, $excerpt, $sourceUrl ?: null, $email, $token]);
 set_resource_authors($pdo, (int) $pdo->lastInsertId(), $author);
 
 $verifyUrl = base_url() . '/validar/' . $token;

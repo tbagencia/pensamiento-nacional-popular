@@ -16,7 +16,9 @@ if (in_array($preview, ['verified', 'published', 'already', 'invalid'], true)) {
 } elseif ($token !== '' && preg_match('/^[a-f0-9]{64}$/', $token)) {
     $pdo = db();
     $stmt = $pdo->prepare(
-        "SELECT id, status, title, author, year, submitter_email FROM resources WHERE verify_token = ?"
+        "SELECT id, status, title, " . author_label_sql('resources') . " AS author,
+                year, submitter_email
+         FROM resources WHERE verify_token = ?"
     );
     $stmt->execute([$token]);
     $resource = $stmt->fetch(PDO::FETCH_ASSOC);
