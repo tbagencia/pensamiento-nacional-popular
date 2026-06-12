@@ -11,7 +11,8 @@ require_once __DIR__ . '/db.php';
 $id = (int) ($_GET['id'] ?? 0);
 
 $stmt = db()->prepare(
-    "SELECT id, title, author, year, type, excerpt, source_url
+    "SELECT id, title, " . author_label_sql('resources') . " AS author,
+            year, type, excerpt, source_url
      FROM resources
      WHERE id = ? AND status = 'approved'"
 );
@@ -36,7 +37,8 @@ if ($requestPath !== $canonicalPath) {
 // Neighbours in timeline order (year ASC, id ASC) anchor the page to
 // the line and give crawlers a path through the whole archive.
 $prevStmt = db()->prepare(
-    "SELECT id, title, author, year FROM resources
+    "SELECT id, title, " . author_label_sql('resources') . " AS author, year
+     FROM resources
      WHERE status = 'approved' AND (year < ? OR (year = ? AND id < ?))
      ORDER BY year DESC, id DESC LIMIT 1"
 );
@@ -44,7 +46,8 @@ $prevStmt->execute([$doc['year'], $doc['year'], $doc['id']]);
 $prev = $prevStmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
 $nextStmt = db()->prepare(
-    "SELECT id, title, author, year FROM resources
+    "SELECT id, title, " . author_label_sql('resources') . " AS author, year
+     FROM resources
      WHERE status = 'approved' AND (year > ? OR (year = ? AND id > ?))
      ORDER BY year ASC, id ASC LIMIT 1"
 );
@@ -70,34 +73,36 @@ function pick_related(array $rows, array $neighborIds): array
 }
 
 $sameAuthorStmt = db()->prepare(
-    "SELECT DISTINCT r.id, r.title, r.author, r.year
+    "SELECT DISTINCT r.id, r.title, " . author_label_sql('r') . " AS author, r.year
      FROM resources r
      JOIN resource_authors ra ON ra.resource_id = r.id
      WHERE r.status = 'approved' AND r.id != ?
-       AND ra.author IN (SELECT author FROM resource_authors WHERE resource_id = ?)
+       AND ra.author_id IN (SELECT author_id FROM resource_authors WHERE resource_id = ?)
      ORDER BY r.year ASC, r.id ASC LIMIT 5"
 );
 $sameAuthorStmt->execute([$doc['id'], $doc['id']]);
 $sameAuthor = pick_related($sameAuthorStmt->fetchAll(PDO::FETCH_ASSOC), $neighborIds);
 
 $sameEraStmt = db()->prepare(
-    "SELECT id, title, author, year FROM resources
+    "SELECT id, title, " . author_label_sql('resources') . " AS author, year
+     FROM resources
      WHERE status = 'approved' AND id != ?
        AND year BETWEEN ? - 10 AND ? + 10
        AND id NOT IN (
            SELECT resource_id FROM resource_authors
-           WHERE author IN (SELECT author FROM resource_authors WHERE resource_id = ?)
+           WHERE author_id IN (SELECT author_id FROM resource_authors WHERE resource_id = ?)
        )
      ORDER BY ABS(year - ?) ASC, id ASC LIMIT 5"
 );
 $sameEraStmt->execute([$doc['id'], $doc['year'], $doc['year'], $doc['id'], $doc['year']]);
 $sameEra = pick_related($sameEraStmt->fetchAll(PDO::FETCH_ASSOC), $neighborIds);
 
-// "Más de Juan Domingo Perón" reads well; for collective display strings
-// like FORJA's, a neutral heading avoids repeating the whole parenthesis,
-// and each related entry then names its own author.
-$isCollective = count(canonical_authors($doc['author'])) > 1;
-$sameAuthorHeading = $isCollective ? 'De los mismos autores' : 'Más de ' . $doc['author'];
+// The heading reads from the document's linked authors — the database
+// is the single source of authorship truth. One author: "Más de X";
+// several: a neutral heading, and each entry names its own author.
+$docAuthors = resource_author_names(db(), (int) $doc['id']);
+$isCollective = count($docAuthors) > 1;
+$sameAuthorHeading = $isCollective ? 'De los mismos autores' : 'Más de ' . ($docAuthors[0] ?? $doc['author']);
 
 $pageTitle = sprintf('«%s» — %s (%d)', $doc['title'], $doc['author'], $doc['year']);
 $flatExcerpt = trim(preg_replace('/\s+/', ' ', $doc['excerpt'] ?? ''));
@@ -288,8 +293,6 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
     <p>Archivo colaborativo del Pensamiento Nacional y Popular Argentino.</p>
     <p>
       <a href="/cargar">Aportar un documento</a> ·
-      <a href="mailto:aportes@pensamientonacionalypopular.com.ar">Contacto</a>
-      ·
       <button
         type="button"
         class="link-button"
