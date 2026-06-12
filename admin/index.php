@@ -264,7 +264,7 @@ function e(?string $s): string
         <?php if ($r['source_url']): ?>
           <p class="admin-source"><a href="<?= e($r['source_url']) ?>" target="_blank" rel="noopener noreferrer">Fuente</a></p>
         <?php endif; ?>
-        <p class="meta">Cargado por <?= e($r['submitter_email']) ?> · <?= e($r['created_at']) ?> UTC</p>
+        <p class="meta">Cargado por <?= e($r['submitter_email']) ?> · <time datetime="<?= e(str_replace(' ', 'T', $r['created_at'])) ?>Z"><?= e($r['created_at']) ?> UTC</time></p>
 
         <div class="admin-actions">
           <?php foreach ([['approve', 'Aprobar', 'btn-primary'], ['reject', 'Rechazar', 'btn-danger'], ['delete', 'Eliminar', 'btn-ghost']] as [$action, $label, $class]): ?>
@@ -353,7 +353,7 @@ function e(?string $s): string
   ) ?></script>
   <div id="toasts" class="toasts" aria-live="polite"></div>
   <script src="/assets/js/author-tags.js?v=1"></script>
-  <script src="/assets/js/admin.js?v=5"></script>
+  <script src="/assets/js/admin.js?v=6"></script>
 <?php endif; ?>
 
 </body>

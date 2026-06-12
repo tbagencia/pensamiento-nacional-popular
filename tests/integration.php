@@ -367,6 +367,10 @@ check(str_contains($res['body'], 'Moderación'), 'admin logs in');
 preg_match('/name="csrf" value="([a-f0-9]{32})"/', $res['body'], $m);
 $csrf = $m[1] ?? '';
 check($csrf !== '', 'CSRF token is present');
+check(
+    (bool) preg_match('/<time datetime="[0-9T:-]+Z">/', $res['body']),
+    'upload date is a UTC time element the client localizes'
+);
 
 $id = (int) db()->query("SELECT id FROM resources WHERE title = 'Segundo aporte misma sesión'")->fetchColumn();
 $res = request('POST', ADMIN_URL, [

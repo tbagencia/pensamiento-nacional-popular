@@ -223,6 +223,24 @@ function filterCards(query) {
   }
 }
 
+// Upload timestamps arrive in UTC inside <time> elements; render them
+// in the moderator's own timezone as dd/mm/aaaa hh:mm. The raw UTC
+// string stays as the no-JS fallback.
+const dateFormat = new Intl.DateTimeFormat('es-AR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+for (const el of document.querySelectorAll('time[datetime]')) {
+  const date = new Date(el.getAttribute('datetime'));
+  if (!Number.isNaN(date.getTime())) {
+    el.textContent = dateFormat.format(date);
+  }
+}
+
 function showToast(message, isError = false) {
   const toast = document.createElement('div');
   toast.className = 'toast' + (isError ? ' toast-error' : '');
