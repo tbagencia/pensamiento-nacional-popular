@@ -1680,7 +1680,10 @@ input[readonly] {
 	padding: var(--space-l) var(--space-m);
 }
 .success-card h2 {
-	color: var(--ok);
+	color: var(--brand-deep);
+}
+.success-card .btn {
+	margin-block-start: var(--space-s);
 }
 
 /* ---------- Block: feedback ---------- */
@@ -1762,6 +1765,34 @@ input[readonly] {
 	font-size: var(--text--1);
 }
 
+/* ---------- Block: status mark (post-action screens) ---------- */
+
+.status-mark {
+	display: grid;
+	place-items: center;
+	inline-size: 3.25rem;
+	block-size: 3.25rem;
+	margin: 0 auto var(--space-s);
+	border-radius: var(--radius-pill);
+	background: var(--gold);
+	color: var(--brand-deep);
+	font-family: var(--font-ui);
+	font-size: var(--text-1);
+	font-weight: 700;
+}
+.status-mark[data-tone="ok"] {
+	background: var(--ok);
+	color: #fff;
+}
+.status-mark[data-tone="danger"] {
+	background: var(--danger);
+	color: #fff;
+}
+.status-mark[data-tone="muted"] {
+	background: var(--paper);
+	color: var(--muted);
+}
+
 /* ---------- Block: verify / login pages ---------- */
 
 .verify-page {
@@ -1777,8 +1808,11 @@ input[readonly] {
 	max-inline-size: 26rem;
 	text-align: center;
 }
-.verify-ok h1 {
-	color: var(--ok);
+.verify-card {
+	padding: var(--space-l) var(--space-m);
+}
+.verify-card .btn {
+	margin-block-start: var(--space-s);
 }
 .login-card {
 	text-align: start;

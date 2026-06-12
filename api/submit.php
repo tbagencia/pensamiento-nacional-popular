@@ -107,24 +107,5 @@ json_response($response, 201);
 
 function send_verification_email(string $to, string $title, string $verifyUrl): bool
 {
-    $subject = 'Validá tu carga - ' . SITE_NAME;
-    $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
-    $body = <<<HTML
-    <!DOCTYPE html>
-    <html lang="es">
-    <body style="font-family: Arial, sans-serif; background: #f4f1ea; padding: 24px;">
-      <div style="max-width: 520px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px;">
-        <h2 style="color: #1d3557; margin-top: 0;">Confirmación de carga</h2>
-        <p>Recibimos tu aporte <strong>"$safeTitle"</strong> para la Línea de Tiempo del Pensamiento Nacional y Popular Argentino.</p>
-        <p>Para terminar de confirmar la carga, hacé clic en el botón:</p>
-        <p style="text-align: center; margin: 32px 0;">
-          <a href="$verifyUrl" style="background: #1d6fb8; color: #fff; padding: 14px 40px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">VALIDAR</a>
-        </p>
-        <p style="color: #666; font-size: 13px;">Después de validar, el contenido será revisado por un moderador antes de publicarse. Si no realizaste esta carga, ignorá este mensaje.</p>
-      </div>
-    </body>
-    </html>
-    HTML;
-
-    return send_email($to, $subject, $body);
+    return send_email($to, 'Validá tu carga - ' . SITE_NAME, verification_email_html($title, $verifyUrl));
 }

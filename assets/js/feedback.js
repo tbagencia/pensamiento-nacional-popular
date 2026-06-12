@@ -76,6 +76,7 @@
 					<p class="field-error" data-for="general"></p>
 				</form>
 				<div id="feedback-success" hidden>
+					<p class="status-mark" data-tone="ok" aria-hidden="true">✓</p>
 					<p><strong>¡Gracias por tu mensaje!</strong></p>
 					<p>Lo vamos a revisar a la brevedad.</p>
 				</div>

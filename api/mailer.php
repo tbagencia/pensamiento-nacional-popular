@@ -16,6 +16,70 @@ function send_email(string $to, string $subject, string $html): bool
         : mail_send($to, $subject, $html);
 }
 
+/**
+ * Shared email shell with the site identity: dark masthead with gold
+ * eyebrow and flag band, warm body, pill CTA mirroring the site buttons.
+ * Styles are inline so email clients keep them. $bodyHtml comes escaped.
+ */
+function email_layout(string $title, string $bodyHtml, ?string $ctaLabel = null, ?string $ctaUrl = null, string $footnote = ''): string
+{
+    $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+
+    $cta = '';
+    if ($ctaLabel !== null && $ctaUrl !== null) {
+        $safeLabel = htmlspecialchars($ctaLabel, ENT_QUOTES, 'UTF-8');
+        $safeUrl = htmlspecialchars($ctaUrl, ENT_QUOTES, 'UTF-8');
+        $cta = <<<HTML
+        <p style="text-align: center; margin: 32px 0 8px;">
+          <a href="$safeUrl" style="display: inline-block; background: #f6b40e; color: #1d3557; padding: 13px 38px; border-radius: 999px; text-decoration: none; font-weight: bold; font-size: 15px;">$safeLabel</a>
+        </p>
+        HTML;
+    }
+
+    $foot = '';
+    if ($footnote !== '') {
+        $safeFootnote = htmlspecialchars($footnote, ENT_QUOTES, 'UTF-8');
+        $foot = <<<HTML
+        <p style="color: #6e675c; font-size: 13px; margin: 24px 0 0;">$safeFootnote</p>
+        HTML;
+    }
+
+    $siteName = htmlspecialchars(SITE_NAME, ENT_QUOTES, 'UTF-8');
+
+    return <<<HTML
+    <!DOCTYPE html>
+    <html lang="es">
+    <body style="margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f7f3ea; padding: 32px 16px;">
+      <div style="max-width: 520px; margin: 0 auto; background: #fffdf8; border-radius: 14px; overflow: hidden; border: 1px solid rgba(38, 34, 28, 0.08);">
+        <div style="background: #1d3557; padding: 26px 32px 22px;">
+          <p style="margin: 0 0 8px; color: #f6b40e; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">Archivo colaborativo &middot; 1810 &mdash; hoy</p>
+          <h1 style="margin: 0; color: #ffffff; font-family: Georgia, 'Times New Roman', serif; font-size: 22px; line-height: 1.3;">$safeTitle</h1>
+        </div>
+        <div style="font-size: 0; line-height: 0;">
+          <div style="height: 2px; background: #74acdf;"></div>
+          <div style="height: 2px; background: #ffffff;"></div>
+          <div style="height: 2px; background: #74acdf;"></div>
+        </div>
+        <div style="padding: 28px 32px 30px; color: #26221c; font-size: 15px; line-height: 1.6;">
+          $bodyHtml
+          $cta
+          $foot
+        </div>
+      </div>
+      <p style="max-width: 520px; margin: 16px auto 0; text-align: center; color: #6e675c; font-size: 12px;">$siteName</p>
+    </body>
+    </html>
+    HTML;
+}
+
+/** Highlight box for quoted content (a document, a reason, a message). */
+function email_box(string $innerHtml): string
+{
+    return <<<HTML
+    <div style="background: #f7f3ea; border-left: 3px solid #f6b40e; border-radius: 0 10px 10px 0; padding: 14px 18px; margin: 16px 0;">$innerHtml</div>
+    HTML;
+}
+
 /** Tells every configured moderator that a resource awaits review. */
 function notify_moderators(array $resource): void
 {
@@ -24,92 +88,103 @@ function notify_moderators(array $resource): void
         return;
     }
 
-    $title = htmlspecialchars($resource['title'], ENT_QUOTES, 'UTF-8');
-    $author = htmlspecialchars($resource['author'], ENT_QUOTES, 'UTF-8');
-    $year = (int) $resource['year'];
     $adminPath = env('ADMIN_PATH', '') ?? '';
     $adminUrl = base_url() . ($adminPath !== '' ? '/panel/' . $adminPath : '/admin/');
     $subject = 'Nuevo documento para moderar - ' . $resource['title'];
-
-    $body = <<<HTML
-    <!DOCTYPE html>
-    <html lang="es">
-    <body style="font-family: Arial, sans-serif; background: #f4f1ea; padding: 24px;">
-      <div style="max-width: 520px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px;">
-        <h2 style="color: #1d3557; margin-top: 0;">Nuevo documento pendiente</h2>
-        <p>Se validó una nueva carga y espera moderación:</p>
-        <p style="background: #f7f3ea; border-radius: 6px; padding: 16px;">
-          <strong>$title</strong><br>
-          $author · $year
-        </p>
-        <p style="text-align: center; margin: 32px 0;">
-          <a href="$adminUrl" style="background: #1d6fb8; color: #fff; padding: 14px 40px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">Ir al panel</a>
-        </p>
-      </div>
-    </body>
-    </html>
-    HTML;
+    $body = moderation_email_html($resource, $adminUrl);
 
     foreach ($emails as $email) {
         send_email($email, $subject, $body);
     }
 }
 
+function moderation_email_html(array $resource, string $adminUrl): string
+{
+    $title = htmlspecialchars($resource['title'], ENT_QUOTES, 'UTF-8');
+    $author = htmlspecialchars($resource['author'], ENT_QUOTES, 'UTF-8');
+    $year = (int) $resource['year'];
+
+    $box = email_box("<strong>$title</strong><br>$author &middot; $year");
+    return email_layout(
+        'Nuevo documento pendiente',
+        "<p style=\"margin: 0 0 4px;\">Se validó una nueva carga y espera moderación:</p>$box",
+        'Ir al panel',
+        $adminUrl
+    );
+}
+
 /** Tells the submitter their document is now published, with its URL. */
 function notify_submitter_approved(string $to, string $title, string $docUrl): bool
 {
+    return send_email($to, 'Tu aporte ya está publicado - ' . SITE_NAME, approved_email_html($title, $docUrl));
+}
+
+function approved_email_html(string $title, string $docUrl): string
+{
     $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
-    $subject = 'Tu aporte ya está publicado - ' . SITE_NAME;
-
-    $body = <<<HTML
-    <!DOCTYPE html>
-    <html lang="es">
-    <body style="font-family: Arial, sans-serif; background: #f4f1ea; padding: 24px;">
-      <div style="max-width: 520px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px;">
-        <h2 style="color: #1d3557; margin-top: 0;">¡Tu aporte fue aprobado!</h2>
-        <p>Tu documento <strong>"$safeTitle"</strong> ya forma parte de la Línea de Tiempo del Pensamiento Nacional y Popular Argentino.</p>
-        <p style="text-align: center; margin: 32px 0;">
-          <a href="$docUrl" style="background: #1d6fb8; color: #fff; padding: 14px 40px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">VER PUBLICADO</a>
-        </p>
-        <p style="color: #666; font-size: 13px;">Gracias por aportar al archivo. Compartilo para que llegue a más gente.</p>
-      </div>
-    </body>
-    </html>
-    HTML;
-
-    return send_email($to, $subject, $body);
+    return email_layout(
+        '¡Tu aporte fue aprobado!',
+        "<p style=\"margin: 0;\">Tu documento <strong>&laquo;{$safeTitle}&raquo;</strong> ya forma parte de la línea de tiempo.</p>",
+        'Ver el documento',
+        $docUrl,
+        'Gracias por aportar al archivo. Compartilo para que llegue a más gente.'
+    );
 }
 
 /** Tells the submitter their document was not published, with the reason if given. */
 function notify_submitter_rejected(string $to, string $title, string $reason): bool
 {
+    return send_email($to, 'Sobre tu aporte - ' . SITE_NAME, rejected_email_html($title, $reason));
+}
+
+function rejected_email_html(string $title, string $reason): string
+{
     $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
-    $subject = 'Sobre tu aporte - ' . SITE_NAME;
 
     $reasonBlock = '';
     if (trim($reason) !== '') {
         $safeReason = nl2br(htmlspecialchars($reason, ENT_QUOTES, 'UTF-8'));
-        $reasonBlock = <<<HTML
-        <p>El motivo que indicó el moderador:</p>
-        <p style="background: #f7f3ea; border-radius: 6px; padding: 16px;">$safeReason</p>
-        HTML;
+        $reasonBlock = '<p style="margin: 16px 0 0;">El motivo que indicó el moderador:</p>'
+            . email_box($safeReason);
     }
 
-    $body = <<<HTML
-    <!DOCTYPE html>
-    <html lang="es">
-    <body style="font-family: Arial, sans-serif; background: #f4f1ea; padding: 24px;">
-      <div style="max-width: 520px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px;">
-        <h2 style="color: #1d3557; margin-top: 0;">Tu aporte no fue publicado</h2>
-        <p>Revisamos tu documento <strong>"$safeTitle"</strong> y esta vez no va a formar parte de la línea de tiempo.</p>
-        $reasonBlock
-        <p style="color: #666; font-size: 13px;">Podés corregirlo y volver a enviarlo cuando quieras. Gracias por querer aportar al archivo.</p>
-      </div>
-    </body>
-    </html>
-    HTML;
+    return email_layout(
+        'Tu aporte no fue publicado',
+        "<p style=\"margin: 0;\">Revisamos tu documento <strong>&laquo;{$safeTitle}&raquo;</strong> y esta vez no va a formar parte de la línea de tiempo.</p>$reasonBlock",
+        null,
+        null,
+        'Podés corregirlo y volver a enviarlo cuando quieras. Gracias por querer aportar al archivo.'
+    );
+}
 
-    return send_email($to, $subject, $body);
+/** Verification email body (the VALIDAR button). Sent from submit.php. */
+function verification_email_html(string $title, string $verifyUrl): string
+{
+    $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+    return email_layout(
+        'Confirmación de carga',
+        "<p style=\"margin: 0 0 12px;\">Recibimos tu aporte <strong>&laquo;{$safeTitle}&raquo;</strong> para la línea de tiempo.</p>"
+        . '<p style="margin: 0;">Para terminar de confirmar la carga, hacé clic en el botón:</p>',
+        'VALIDAR',
+        $verifyUrl,
+        'Después de validar, el contenido será revisado por un moderador antes de publicarse. Si no realizaste esta carga, ignorá este mensaje.'
+    );
+}
+
+/** Visitor feedback email body. Sent from feedback.php to the moderators. */
+function feedback_email_html(string $kindLabel, string $message, string $email, string $page): string
+{
+    $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+    $safeMessage = nl2br($e($message));
+    $safeFrom = $email !== '' ? $e($email) : 'No indicado';
+    $safePage = $page !== '' ? $e($page) : 'No indicada';
+
+    $box = email_box($safeMessage);
+    return email_layout(
+        $kindLabel,
+        "<p style=\"margin: 0 0 4px;\">Un visitante dejó este mensaje en el sitio:</p>$box"
+        . "<p style=\"color: #6e675c; font-size: 13px; margin: 16px 0 0;\">Email de contacto: $safeFrom<br>Página: $safePage</p>"
+    );
 }
 
 function mail_send(string $to, string $subject, string $html): bool

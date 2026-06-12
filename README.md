@@ -122,6 +122,10 @@ Con `DEV_MODE=true` en `.env`, el enlace de
 validación se muestra en pantalla tras la carga, así el flujo se puede probar
 aunque no haya servidor de correo.
 
+Con `DEV_MODE=true`, `/api/preview.php` lista previews de todos los emails
+de la plataforma y de las pantallas post-acción (validación, carga recibida),
+sin pasar por los flujos reales. En producción responde 404.
+
 ### Emails en desarrollo con Mailtrap
 
 En desarrollo el sitio usa [Mailtrap](https://mailtrap.io) (sandbox): atrapa

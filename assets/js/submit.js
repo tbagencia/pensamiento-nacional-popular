@@ -114,6 +114,14 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
+// Visual preview of the success screen without submitting
+// (linked from api/preview.php).
+if (location.hash === '#preview-success') {
+  document.getElementById('success-email').textContent = 'tu@email.com';
+  form.hidden = true;
+  successCard.hidden = false;
+}
+
 function showErrors(errors) {
   for (const [field, message] of Object.entries(errors)) {
     const el = form.querySelector(`.field-error[data-for="${field}"]`)

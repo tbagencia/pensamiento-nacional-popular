@@ -60,27 +60,8 @@ function notify_feedback(string $kindLabel, string $message, string $email, stri
         return false;
     }
 
-    $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
-    $safeMessage = nl2br($e($message));
-    $safeFrom = $email !== '' ? $e($email) : 'No indicado';
-    $safePage = $page !== '' ? $e($page) : 'No indicada';
     $subject = $kindLabel . ' desde el sitio - ' . SITE_NAME;
-
-    $body = <<<HTML
-    <!DOCTYPE html>
-    <html lang="es">
-    <body style="font-family: Arial, sans-serif; background: #f4f1ea; padding: 24px;">
-      <div style="max-width: 520px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px;">
-        <h2 style="color: #1d3557; margin-top: 0;">$kindLabel</h2>
-        <p style="background: #f7f3ea; border-radius: 6px; padding: 16px;">$safeMessage</p>
-        <p style="color: #666; font-size: 13px;">
-          Email de contacto: $safeFrom<br>
-          Página: $safePage
-        </p>
-      </div>
-    </body>
-    </html>
-    HTML;
+    $body = feedback_email_html($kindLabel, $message, $email, $page);
 
     $sent = false;
     foreach ($emails as $to) {

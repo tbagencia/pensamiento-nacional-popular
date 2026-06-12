@@ -8,7 +8,12 @@ require_once __DIR__ . '/mailer.php';
 $token = $_GET['token'] ?? '';
 $state = 'invalid';
 
-if ($token !== '' && preg_match('/^[a-f0-9]{64}$/', $token)) {
+// Dev-only: render any state without touching the database
+// (see api/preview.php for the index of previews).
+$preview = DEV_MODE ? ($_GET['preview'] ?? '') : '';
+if (in_array($preview, ['verified', 'published', 'already', 'invalid'], true)) {
+    $state = $preview;
+} elseif ($token !== '' && preg_match('/^[a-f0-9]{64}$/', $token)) {
     $pdo = db();
     $stmt = $pdo->prepare(
         "SELECT id, status, title, author, year, submitter_email FROM resources WHERE verify_token = ?"
@@ -43,21 +48,25 @@ $messages = [
     'verified' => [
         'Email validado',
         'Tu carga quedó confirmada. Ahora será revisada por un moderador y, si es aprobada, aparecerá en la línea de tiempo.',
+        'ok', '✓',
     ],
     'published' => [
         'Documento publicado',
         'Tu email de moderación quedó validado y el documento ya está publicado en la línea de tiempo.',
+        'ok', '✓',
     ],
     'already' => [
         'Este aporte ya fue validado',
         'No hace falta validarlo de nuevo. Si fue aprobado, ya está visible en la línea de tiempo.',
+        'muted', '✓',
     ],
     'invalid' => [
         'Enlace no válido',
         'El enlace de validación no existe o expiró. Volvé a cargar el documento si el problema persiste.',
+        'danger', '✕',
     ],
 ];
-[$heading, $detail] = $messages[$state];
+[$heading, $detail, $tone, $mark] = $messages[$state];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -69,14 +78,16 @@ $messages = [
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=8">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=23">
 </head>
 <body>
   <main class="verify-page">
-    <div class="card verify-card <?= $state === 'verified' ? 'verify-ok' : '' ?>">
+    <div class="card verify-card" data-state="<?= $state ?>">
+      <p class="status-mark" data-tone="<?= $tone ?>" aria-hidden="true"><?= $mark ?></p>
+      <p class="eyebrow">Archivo colaborativo</p>
       <h1><?= htmlspecialchars($heading) ?></h1>
       <p><?= htmlspecialchars($detail) ?></p>
-      <a class="btn btn-primary" href="/">Ir a la línea de tiempo</a>
+      <a class="btn btn-accent" href="/">Ir a la línea de tiempo</a>
     </div>
   </main>
 </body>
