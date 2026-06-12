@@ -10,7 +10,6 @@ const timelineEl = document.getElementById("timeline");
 const statusEl = document.getElementById("status");
 const yearNav = document.querySelector(".year-nav");
 const typeNav = document.getElementById("type-nav");
-const toTopBtn = document.getElementById("to-top");
 const searchBar = document.querySelector(".search-bar");
 const searchInput = document.getElementById("search-input");
 const searchClear = document.getElementById("search-clear");
@@ -64,7 +63,6 @@ async function init() {
 		initShare(timelineEl, (card) =>
 			allResources.find((r) => `doc-${r.id}` === card.id),
 		);
-		setupToTop();
 		setupHistory();
 		renderAll();
 		statusEl.hidden = true;
@@ -642,28 +640,6 @@ function setupReadMore() {
 		if (!collapsed) {
 			window.scrollBy(0, btn.getBoundingClientRect().top - anchor);
 		}
-	});
-}
-
-/* ---------- Back to top ---------- */
-
-function setupToTop() {
-	if (!toTopBtn) return;
-
-	window.addEventListener(
-		"scroll",
-		() => {
-			toTopBtn.dataset.state =
-				window.scrollY > window.innerHeight ? "visible" : "hidden";
-		},
-		{ passive: true },
-	);
-
-	toTopBtn.addEventListener("click", () => {
-		window.scrollTo({
-			top: 0,
-			behavior: prefersReducedMotion.matches ? "auto" : "smooth",
-		});
 	});
 }
 

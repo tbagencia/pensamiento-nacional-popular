@@ -40,12 +40,12 @@
 		{
 			target: ".font-controls",
 			title: "Ajustá el tamaño del texto",
-			text: "Con A− y A+ agrandás o achicás toda la letra del sitio. Tu elección queda guardada para la próxima visita.",
+			text: "Estos botones te acompañan mientras leés, abajo a la derecha: con A+ y A− agrandás o achicás toda la letra del sitio. Tu elección queda guardada para la próxima visita.",
 		},
 		{
-			target: ".site-footer [data-feedback-trigger]",
+			target: ".feedback-fab",
 			title: "Contanos qué te parece",
-			text: "¿Encontraste un error o tenés una sugerencia? Desde acá nos podés enviar un comentario.",
+			text: "¿Encontraste un error o tenés una sugerencia? El botón Feedback, abajo a la izquierda, siempre está a mano para enviarnos un comentario.",
 		},
 	];
 

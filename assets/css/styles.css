@@ -313,18 +313,14 @@ a {
 
 /* ---------- Block: credits link (anchored to the header, scrolls away) ---------- */
 
-/* Header corner: type-size controls + credits trigger. */
+/* Header corner: credits trigger. */
 .header-actions {
 	position: absolute;
 	top: var(--space-s);
 	right: var(--space-s);
-	display: flex;
-	align-items: center;
-	gap: var(--space-2xs);
 }
 
-.credits-link,
-.font-control {
+.credits-link {
 	padding: var(--space-3xs) var(--space-xs);
 	background: transparent;
 	border: 1px solid var(--gold);
@@ -341,24 +337,9 @@ a {
 		color 0.2s ease;
 }
 
-.credits-link:hover,
-.font-control:hover:not(:disabled) {
+.credits-link:hover {
 	background: var(--gold);
 	color: var(--brand-deep);
-}
-
-.font-controls {
-	display: flex;
-	gap: var(--space-3xs);
-}
-
-.font-control {
-	letter-spacing: 0;
-}
-
-.font-control:disabled {
-	opacity: 0.45;
-	cursor: default;
 }
 
 /* Utility: button that reads as an inline link */
@@ -773,7 +754,7 @@ a {
 }
 
 /* On mobile the search floats at the top-left corner, mirroring the
-   to-top button at the bottom-right. Collapsed it is a round magnifier
+   floating controls at the bottom edge. Collapsed it is a round magnifier
    node; circle and pill are the same input, so opening is a pure
    max-inline-size transition. It expands on focus, stays floating while
    a query is active, and folds back when it loses focus while empty. */
@@ -1536,41 +1517,93 @@ main.center {
 	background: color-mix(in srgb, var(--sky) 14%, transparent);
 }
 
-/* ---------- Block: back to top ---------- */
+/* ---------- Block: floating reading controls ---------- */
 
-.to-top {
+/* Type-size capsule pinned to the lower-right corner: A+ stacked
+   over A− so the footprint stays narrow. */
+.font-controls {
 	position: fixed;
 	inset-block-end: var(--space-s);
 	inset-inline-end: var(--space-s);
 	z-index: 20;
-	width: 2.75rem;
-	height: 2.75rem;
+	display: flex;
+	flex-direction: column;
 	border: 1.5px solid var(--line);
-	border-radius: 50%;
-	background: var(--surface);
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--surface) 65%, transparent);
+	-webkit-backdrop-filter: blur(8px);
+	backdrop-filter: blur(8px);
+	box-shadow: var(--shadow-1);
+	overflow: hidden;
+}
+
+.font-control {
+	width: 3rem;
+	padding: var(--space-2xs) 0;
+	border: 0;
+	background: transparent;
 	color: var(--muted);
-	font-size: var(--text-1);
+	font-family: var(--font-ui);
+	font-size: var(--text-0);
+	cursor: pointer;
+	transition: color 0.2s ease;
+}
+
+.font-control + .font-control {
+	border-block-start: 1px solid var(--line);
+}
+
+.font-control:hover:not(:disabled) {
+	color: var(--brand);
+}
+
+.font-control:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+/* Feedback trigger pinned to the lower-left corner. */
+.feedback-fab {
+	position: fixed;
+	inset-block-end: var(--space-s);
+	inset-inline-start: var(--space-s);
+	z-index: 20;
+	padding: var(--space-2xs) var(--space-s);
+	border: 1.5px solid var(--line);
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--surface) 65%, transparent);
+	-webkit-backdrop-filter: blur(8px);
+	backdrop-filter: blur(8px);
+	color: var(--muted);
+	font-family: var(--font-ui);
+	font-size: var(--text--1);
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
 	box-shadow: var(--shadow-1);
 	cursor: pointer;
-	opacity: 0;
-	translate: 0 var(--space-s);
-	pointer-events: none;
 	transition:
-		opacity 0.25s ease,
-		translate 0.25s var(--ease-out),
 		border-color 0.2s ease,
 		color 0.2s ease;
 }
 
-.to-top:hover {
+.feedback-fab:hover {
 	border-color: var(--brand);
 	color: var(--brand);
 }
 
-.to-top[data-state="visible"] {
-	opacity: 1;
-	translate: 0;
-	pointer-events: auto;
+/* Desktop: pointer precision needs less hit area, so the floats shrink. */
+@media (min-width: 640px) {
+	.font-control {
+		width: 2.5rem;
+		padding: var(--space-3xs) 0;
+		font-size: var(--text--1);
+	}
+
+	.feedback-fab {
+		padding: var(--space-3xs) var(--space-xs);
+		font-size: var(--text--2);
+	}
 }
 
 /* ---------- Block: forms ---------- */
