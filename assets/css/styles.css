@@ -1696,6 +1696,75 @@ input[readonly] {
 	color: var(--muted);
 }
 
+/* ---------- Block: onboarding tour ---------- */
+
+.tour {
+	position: fixed;
+	inset: 0;
+	z-index: 70;
+	pointer-events: none;
+}
+
+/* The cut-out: a giant shadow dims everything around the target. */
+.tour-highlight {
+	position: fixed;
+	border-radius: var(--radius);
+	box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--brand-deep) 62%, transparent);
+}
+
+.tour-tip {
+	position: fixed;
+	pointer-events: auto;
+	inline-size: min(22rem, calc(100vw - var(--space-m) * 2));
+	background: var(--surface);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-1);
+	padding: var(--space-s) var(--space-m);
+}
+
+/* The dialog container itself is focused programmatically: no ring needed. */
+.tour-tip:focus-visible {
+	outline: none;
+}
+
+.tour-tip[data-placement="center"] {
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+
+.tour-tip-title {
+	font-size: var(--text-1);
+	color: var(--brand-deep);
+	margin-block: 0 var(--space-2xs);
+}
+
+.tour-tip-text {
+	font-family: var(--font-ui);
+	font-size: var(--text-0);
+	line-height: 1.5;
+	margin-block: 0;
+}
+
+.tour-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2xs);
+	margin-block-start: var(--space-s);
+}
+
+.tour-progress {
+	font-family: var(--font-ui);
+	font-size: var(--text--1);
+	color: var(--muted);
+	margin-inline: auto var(--space-2xs);
+}
+
+.tour-actions .btn {
+	padding: var(--space-3xs) var(--space-xs);
+	font-size: var(--text--1);
+}
+
 /* ---------- Block: verify / login pages ---------- */
 
 .verify-page {
