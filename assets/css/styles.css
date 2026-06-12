@@ -1015,11 +1015,9 @@ main.center {
 	}
 }
 
-/* Year heading floats under the nav while its cards scroll by */
+/* On mobile the top year bar already marks the current year, so the
+   heading scrolls with its cards; desktop pins it (see 1150px block). */
 .timeline-year > h2 {
-	position: sticky;
-	top: calc(var(--nav-h) + var(--space-2xs));
-	z-index: 5;
 	display: inline-block;
 	margin: 0 0 var(--space-s);
 	padding: var(--space-3xs) var(--space-s);
@@ -2047,6 +2045,13 @@ input[readonly] {
 		display: block;
 		grid-column: 1;
 		grid-row: 2;
+	}
+
+	/* Year heading floats under the nav while its cards scroll by. */
+	.timeline-year > h2 {
+		position: sticky;
+		top: calc(var(--nav-h) + var(--space-2xs));
+		z-index: 5;
 	}
 
 	.year-nav {
