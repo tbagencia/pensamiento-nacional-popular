@@ -1201,6 +1201,13 @@ main.center {
 	padding-inline-end: var(--space-2xl);
 }
 
+/* The reveal animation leaves `translate` on every card, making each
+   one a stacking context: the menu's own z-index cannot escape it, so
+   the card holding the open menu is raised above its siblings. */
+.card:has(.share-menu) {
+	z-index: 10;
+}
+
 .share-menu {
 	position: absolute;
 	top: calc(var(--space-xs) + 2rem + var(--space-2xs));
