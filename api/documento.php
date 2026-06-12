@@ -81,7 +81,7 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
   <script src="/assets/js/font-scale.js?v=1"></script>
-  <link rel="stylesheet" href="/assets/css/styles.css?v=31">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=36">
   <script type="application/ld+json"><?= json_encode([
       '@context' => 'https://schema.org',
       '@type' => 'Article',
@@ -98,24 +98,6 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
   <header class="site-header site-header-small">
     <a class="back-link" href="/">&larr; Volver a la línea de tiempo</a>
     <div class="header-actions">
-      <div class="font-controls" role="group" aria-label="Tamaño del texto">
-        <button
-          type="button"
-          class="font-control"
-          data-font-scale-down
-          aria-label="Reducir el tamaño del texto"
-        >
-          A&minus;
-        </button>
-        <button
-          type="button"
-          class="font-control"
-          data-font-scale-up
-          aria-label="Aumentar el tamaño del texto"
-        >
-          A+
-        </button>
-      </div>
       <button
         type="button"
         class="credits-link"
@@ -176,6 +158,35 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
       <a class="btn btn-primary" href="<?= $e($timelineUrl) ?>">Ir a la línea de tiempo Nacional y Popular</a>
     </p>
   </main>
+
+  <div class="font-controls" role="group" aria-label="Tamaño del texto">
+    <button
+      type="button"
+      class="font-control"
+      data-font-scale-up
+      aria-label="Aumentar el tamaño del texto"
+    >
+      A+
+    </button>
+    <button
+      type="button"
+      class="font-control"
+      data-font-scale-down
+      aria-label="Reducir el tamaño del texto"
+    >
+      A&minus;
+    </button>
+  </div>
+
+  <button
+    type="button"
+    class="feedback-fab"
+    data-feedback-trigger
+    aria-controls="feedback-panel"
+    aria-expanded="false"
+  >
+    Feedback
+  </button>
 
   <footer class="site-footer">
     <p>Archivo colaborativo del Pensamiento Nacional y Popular Argentino.</p>
