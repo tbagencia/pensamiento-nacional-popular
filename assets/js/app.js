@@ -137,24 +137,35 @@ function renderTimeline(resources) {
 		return;
 	}
 
-	// Period bands are the editorial chapters of the archive: one opens
-	// before the first rendered year it covers, filters included.
-	let lastPeriodId = null;
+	// Years group into period chapters: the band opens the chapter and
+	// (on desktop) stays stuck to the top while its years scroll by, so
+	// the chapter needs to be the band's real container.
+	let lastPeriodId = Symbol("none");
+	let yearsList = null;
 
 	for (const [year, items] of byYear) {
-		const period = allPeriods.find(
-			(p) =>
-				year >= p.start_year &&
-				(p.end_year === null || year <= p.end_year),
-		);
-		if (period && period.id !== lastPeriodId) {
-			const band = document.createElement("li");
-			band.className = "timeline-period";
-			band.innerHTML = `
-        <span class="period-name">${escapeHtml(period.name)}</span>
-        <span class="period-years">${period.start_year}–${period.end_year ?? "hoy"}</span>`;
-			timelineEl.appendChild(band);
-			lastPeriodId = period.id;
+		const period =
+			allPeriods.find(
+				(p) =>
+					year >= p.start_year &&
+					(p.end_year === null || year <= p.end_year),
+			) ?? null;
+
+		if (!yearsList || (period?.id ?? null) !== lastPeriodId) {
+			lastPeriodId = period?.id ?? null;
+			const chapter = document.createElement("li");
+			chapter.className = "timeline-chapter";
+			if (period) {
+				chapter.innerHTML = `
+        <div class="timeline-period">
+          <span class="period-name">${escapeHtml(period.name)}</span>
+          <span class="period-years">${period.start_year}–${period.end_year ?? "hoy"}</span>
+        </div>`;
+			}
+			yearsList = document.createElement("ol");
+			yearsList.className = "timeline-years";
+			chapter.appendChild(yearsList);
+			timelineEl.appendChild(chapter);
 		}
 
 		const li = document.createElement("li");
@@ -198,7 +209,7 @@ function renderTimeline(resources) {
 		addLink.textContent = `+ Aportar un documento de ${year}`;
 		li.appendChild(addLink);
 
-		timelineEl.appendChild(li);
+		yearsList.appendChild(li);
 	}
 }
 

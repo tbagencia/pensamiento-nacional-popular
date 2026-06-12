@@ -274,7 +274,7 @@ function e(?string $s): string
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=44">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=45">
 </head>
 <body class="admin-body">
 
@@ -325,6 +325,9 @@ function e(?string $s): string
           Los capítulos de la línea de tiempo. Sin año de fin, el período
           llega hasta hoy. Los períodos no pueden superponerse.
         </p>
+        <div class="period-row period-head" aria-hidden="true">
+          <span>Nombre</span><span>Inicio</span><span>Fin</span>
+        </div>
         <?php foreach (periods($pdo) as $p): ?>
           <div class="period-row">
             <form method="post" class="period-form">
