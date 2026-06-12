@@ -2,7 +2,7 @@
 /**
  * Router for the PHP built-in server, which does not read .htaccess.
  * Replicates the friendly-URL rewrites for local development:
- *   php -S localhost:8000 router.php
+ *   php -S localhost:8123 router.php
  * Not used in production (Apache/LiteSpeed handles .htaccess).
  */
 

@@ -25,6 +25,7 @@ contenido antes de que se publique.
 │   ├── config.php        # Configuración (contraseña admin, email, etc.)
 │   ├── db.php            # Conexión SQLite + esquema + seed inicial
 │   ├── documento.php     # Página por documento (/documento/{id}, SSR)
+│   ├── feedback.php      # POST comentarios/reportes → email a moderadores
 │   ├── mailer.php        # Cliente SMTP en PHP puro
 │   ├── resources.php     # GET documentos aprobados
 │   ├── session.php       # Estado de sesión (email ya validado)
@@ -102,10 +103,18 @@ ajustar las rutas absolutas y las reglas de rewrite.
 ## Probar en local
 
 ```bash
-php -S localhost:8000 router.php
+php -S localhost:8123 router.php
 ```
 
-Abrir <http://localhost:8000>. Con `DEV_MODE=true` en `.env`, el enlace de
+Abrir <http://localhost:8123>. Para probar desde otro dispositivo de la red
+(un celular, por ejemplo), levantar el server en todas las interfaces y entrar
+con la IP local de la máquina (`ipconfig getifaddr en0` en macOS):
+
+```bash
+php -S 0.0.0.0:8123 router.php
+```
+
+Con `DEV_MODE=true` en `.env`, el enlace de
 validación se muestra en pantalla tras la carga, así el flujo se puede probar
 aunque no haya servidor de correo.
 
@@ -170,3 +179,7 @@ Pasos:
   `api/db.php` y migrar a MySQL es directo: cambiar el DSN de PDO y el esquema.
 - Antispam incluido: campo honeypot en el formulario y límite de 5 cargas por
   email por día.
+- Feedback de visitantes: el diálogo «Enviar un comentario» (footer, panel
+  Acerca de y formulario de carga) manda el mensaje por email a
+  `MODERATOR_EMAILS` vía `api/feedback.php`. No guarda nada en la base;
+  honeypot y límite de 5 envíos por sesión.
