@@ -31,6 +31,9 @@
 	--text-3: clamp(1.73rem, 1.55rem + 0.92vw, 2.26rem);
 	--text-4: clamp(2.07rem, 1.81rem + 1.32vw, 2.83rem);
 
+	/* User-adjustable type scale, set by assets/js/font-scale.js (A−/A+). */
+	--font-scale: 1;
+
 	/* Fluid space scale (Utopia) */
 	--space-3xs: clamp(0.25rem, 0.24rem + 0.05vw, 0.28rem);
 	--space-2xs: clamp(0.5rem, 0.48rem + 0.11vw, 0.56rem);
@@ -74,6 +77,11 @@
 /* The hidden attribute must win over any display rule (.btn, .type-nav…). */
 [hidden] {
 	display: none !important;
+}
+
+/* The whole type scale is rem-based, so scaling the root scales the site. */
+html {
+	font-size: calc(100% * var(--font-scale));
 }
 
 body {
@@ -305,10 +313,18 @@ a {
 
 /* ---------- Block: credits link (anchored to the header, scrolls away) ---------- */
 
-.credits-link {
+/* Header corner: type-size controls + credits trigger. */
+.header-actions {
 	position: absolute;
 	top: var(--space-s);
 	right: var(--space-s);
+	display: flex;
+	align-items: center;
+	gap: var(--space-2xs);
+}
+
+.credits-link,
+.font-control {
 	padding: var(--space-3xs) var(--space-xs);
 	background: transparent;
 	border: 1px solid var(--gold);
@@ -325,9 +341,24 @@ a {
 		color 0.2s ease;
 }
 
-.credits-link:hover {
+.credits-link:hover,
+.font-control:hover:not(:disabled) {
 	background: var(--gold);
 	color: var(--brand-deep);
+}
+
+.font-controls {
+	display: flex;
+	gap: var(--space-3xs);
+}
+
+.font-control {
+	letter-spacing: 0;
+}
+
+.font-control:disabled {
+	opacity: 0.45;
+	cursor: default;
 }
 
 /* Utility: button that reads as an inline link */
