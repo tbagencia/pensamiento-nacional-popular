@@ -412,9 +412,10 @@ function scrollToYear(year, behavior) {
 		const margin = parseFloat(section.style.scrollMarginTop) || 0;
 		top = window.scrollY + section.getBoundingClientRect().top - margin;
 	} else {
-		// Land just past the spy line: the gold heading tucks fully under
-		// the bar and its gold chip takes over — never both at once.
-		top = window.scrollY + section.getBoundingClientRect().top - spyLine + 10;
+		// Land past the spy line with room for the heading's drop shadow
+		// (~20px of blur), so neither it nor the pill peeks out under the
+		// bar — the gold chip is the only year marker on screen.
+		top = window.scrollY + section.getBoundingClientRect().top - spyLine + 30;
 	}
 	window.scrollTo({ top: Math.max(0, top), behavior });
 }
@@ -496,10 +497,13 @@ function setActiveChip(year, scrollBar = true) {
 	}
 
 	chips.forEach((chip, i) => {
+		// Distance magnification is a desktop-rail effect: on the mobile
+		// bar the gold color alone marks the active chip.
 		const distance = activeIndex === -1 ? Infinity : Math.abs(i - activeIndex);
-		chip.style.scale = prefersReducedMotion.matches
-			? ""
-			: String(CHIP_SCALES[Math.min(distance, CHIP_SCALES.length - 1)]);
+		chip.style.scale =
+			prefersReducedMotion.matches || !desktopRail.matches
+				? ""
+				: String(CHIP_SCALES[Math.min(distance, CHIP_SCALES.length - 1)]);
 
 		if (i === activeIndex) {
 			chip.setAttribute("aria-current", "location");
