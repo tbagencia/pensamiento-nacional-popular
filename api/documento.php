@@ -281,7 +281,7 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
       </section>
 
       <section>
-        <h3>Comentarios</h3>
+        <h3>Feedback</h3>
         <p>
           ¿Encontraste un error o tenés una sugerencia?
           <button
