@@ -1015,9 +1015,18 @@ main.center {
 	}
 }
 
-/* On mobile the top year bar already marks the current year, so the
-   heading scrolls with its cards; desktop pins it (see 1150px block). */
+/* Mobile: the heading docks onto the year bar and slides over the active
+   chip (positioned by year-dock.js); desktop pins it under the nav
+   instead (see the 1150px block). */
 .timeline-year > h2 {
+	position: sticky;
+	top: var(--dock-top, var(--space-2xs));
+	z-index: 15;
+	translate: 0 0;
+	scale: 1;
+	transition:
+		translate 0.25s var(--ease-out),
+		scale 0.25s var(--ease-out);
 	display: inline-block;
 	margin: 0 0 var(--space-s);
 	padding: var(--space-3xs) var(--space-s);
@@ -1028,6 +1037,20 @@ main.center {
 	background: var(--gold);
 	border-radius: var(--radius-pill);
 	box-shadow: var(--shadow-1);
+}
+
+/* Exception: docked onto the year bar, resting over the active chip.
+   Visual only — taps must reach the chips underneath. */
+.timeline-year > h2[data-docked="true"] {
+	translate: var(--dock-shift, 0) 0;
+	scale: var(--dock-scale, 0.8);
+	pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.timeline-year > h2 {
+		transition: none;
+	}
 }
 
 /* ---------- Block: card ---------- */
@@ -2152,7 +2175,6 @@ input[readonly] {
 
 	/* Year heading floats under the nav while its cards scroll by. */
 	.timeline-year > h2 {
-		position: sticky;
 		top: calc(var(--nav-h) + var(--space-2xs));
 		z-index: 5;
 	}
