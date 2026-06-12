@@ -78,17 +78,21 @@ $messages = [
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=24">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=25">
 </head>
 <body>
   <main class="verify-page">
     <div class="status-screen">
-      <p class="eyebrow">Línea de tiempo del pensamiento nacional y popular</p>
       <div class="card verify-card" data-state="<?= $state ?>">
-        <p class="status-mark" data-tone="<?= $tone ?>" aria-hidden="true"><?= $mark ?></p>
-        <h1><?= htmlspecialchars($heading) ?></h1>
-        <p><?= htmlspecialchars($detail) ?></p>
-        <a class="btn btn-accent" href="/">Ir a la línea de tiempo</a>
+        <header class="status-head">
+          <p class="eyebrow">Archivo colaborativo &middot; 1810 &mdash; hoy</p>
+        </header>
+        <div class="status-body">
+          <p class="status-mark" data-tone="<?= $tone ?>" aria-hidden="true"><?= $mark ?></p>
+          <h1><?= htmlspecialchars($heading) ?></h1>
+          <p><?= htmlspecialchars($detail) ?></p>
+          <a class="btn btn-accent" href="/">Ir a la línea de tiempo</a>
+        </div>
       </div>
     </div>
   </main>

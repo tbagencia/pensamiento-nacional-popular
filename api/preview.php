@@ -72,7 +72,7 @@ header('Content-Type: text/html; charset=utf-8');
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>Previews de desarrollo · <?= SITE_NAME ?></title>
-  <link rel="stylesheet" href="/assets/css/styles.css?v=24">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=25">
 </head>
 <body>
   <main class="verify-page">

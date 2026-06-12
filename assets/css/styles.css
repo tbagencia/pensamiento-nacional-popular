@@ -1767,12 +1767,44 @@ input[readonly] {
 
 /* ---------- Block: status screens (post-action) ---------- */
 
-/* Site eyebrow framing the card from outside. */
 .status-screen {
 	text-align: center;
 }
 .status-screen .card {
 	margin-inline: auto;
+	padding: 0;
+	overflow: hidden;
+}
+
+/* Dark masthead mirroring the platform emails, flag band included. */
+.status-head {
+	position: relative;
+	padding: var(--space-s) var(--space-m);
+	background: linear-gradient(135deg, var(--brand-deep), var(--brand-dark));
+}
+
+.status-head::after {
+	content: "";
+	position: absolute;
+	inset-inline: 0;
+	inset-block-end: 0;
+	height: 6px;
+	background: linear-gradient(
+		to bottom,
+		var(--sky) 0 2px,
+		#fff 2px 4px,
+		var(--sky) 4px 6px
+	);
+	pointer-events: none;
+}
+
+.status-head .eyebrow {
+	margin: 0;
+	font-size: var(--text--2);
+}
+
+.status-body {
+	padding: var(--space-l) var(--space-m);
 }
 
 /* ---------- Block: status mark (post-action screens) ---------- */
@@ -1817,9 +1849,6 @@ input[readonly] {
 .login-card {
 	max-inline-size: 26rem;
 	text-align: center;
-}
-.verify-card {
-	padding: var(--space-l) var(--space-m);
 }
 .verify-card .btn {
 	margin-block-start: var(--space-s);
