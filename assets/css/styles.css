@@ -1709,7 +1709,7 @@ input[readonly] {
 .tour-highlight {
 	position: fixed;
 	border-radius: var(--radius);
-	box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--brand-deep) 62%, transparent);
+	box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--brand-deep) 78%, transparent);
 }
 
 .tour-tip {
