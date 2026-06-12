@@ -67,7 +67,7 @@ if ($isAdmin && in_array($_POST['action'] ?? '', ['approve', 'reject', 'delete',
     }
 
     // Fetched before mutating so approve/reject can notify the submitter.
-    $stmt = $pdo->prepare("SELECT title, submitter_email FROM resources WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT id, title, author, submitter_email FROM resources WHERE id = ?");
     $stmt->execute([$id]);
     $resource = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
@@ -83,7 +83,7 @@ if ($isAdmin && in_array($_POST['action'] ?? '', ['approve', 'reject', 'delete',
             notify_submitter_approved(
                 $resource['submitter_email'],
                 $resource['title'],
-                base_url() . '/documento/' . $id
+                base_url() . document_path($resource)
             );
         } elseif ($_POST['action'] === 'reject') {
             notify_submitter_rejected(

@@ -11,4 +11,10 @@ $stmt = db()->query(
 );
 $resources = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Canonical page path, so the front end never rebuilds slugs on its own.
+foreach ($resources as &$resource) {
+    $resource['path'] = document_path($resource);
+}
+unset($resource);
+
 json_response(['resources' => $resources]);

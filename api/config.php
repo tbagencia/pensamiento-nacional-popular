@@ -104,6 +104,33 @@ function base_url(): string
     return "$scheme://$host$dir";
 }
 
+/** URL-safe slug from free text: lowercase ASCII words joined by hyphens. */
+function slugify(string $text): string
+{
+    $text = mb_strtolower($text, 'UTF-8');
+    $text = strtr($text, [
+        'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u',
+        'ü' => 'u', 'ñ' => 'n',
+    ]);
+    $text = preg_replace('/[^a-z0-9]+/', '-', $text);
+    return trim($text, '-');
+}
+
+/**
+ * Canonical path of a document page: /documento/{id}-{title-author slug}.
+ * The id alone identifies the document; the slug exists for search
+ * engines and link previews, so any other slug 301s to this one.
+ */
+function document_path(array $doc): string
+{
+    $slug = slugify($doc['title'] . ' ' . $doc['author']);
+    if (strlen($slug) > 80) {
+        // Cut at a word boundary, never mid-word.
+        $slug = preg_replace('/-[^-]*$/', '', substr($slug, 0, 81));
+    }
+    return '/documento/' . (int) $doc['id'] . ($slug !== '' ? '-' . $slug : '');
+}
+
 function json_response(array $data, int $status = 200): never
 {
     http_response_code($status);

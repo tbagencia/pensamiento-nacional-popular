@@ -23,6 +23,16 @@ if (!$doc) {
     exit;
 }
 
+// One canonical URL per document: any other form of the path (bare id,
+// stale or truncated slug) 301s to /documento/{id}-{slug} so search
+// engines never index duplicates.
+$canonicalPath = document_path($doc);
+$requestPath = rtrim(rawurldecode(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? ''), '/');
+if ($requestPath !== $canonicalPath) {
+    header('Location: ' . $canonicalPath, true, 301);
+    exit;
+}
+
 // Neighbours in timeline order (year ASC, id ASC) anchor the page to
 // the line and give crawlers a path through the whole archive.
 $prevStmt = db()->prepare(
@@ -41,12 +51,31 @@ $nextStmt = db()->prepare(
 $nextStmt->execute([$doc['year'], $doc['year'], $doc['id']]);
 $next = $nextStmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
+// Related documents: same author first, then same era by a different
+// author. Internal links double as crawl paths through the archive.
+$sameAuthorStmt = db()->prepare(
+    "SELECT id, title, author, year FROM resources
+     WHERE status = 'approved' AND author = ? AND id != ?
+     ORDER BY year ASC, id ASC LIMIT 3"
+);
+$sameAuthorStmt->execute([$doc['author'], $doc['id']]);
+$sameAuthor = $sameAuthorStmt->fetchAll(PDO::FETCH_ASSOC);
+
+$sameEraStmt = db()->prepare(
+    "SELECT id, title, author, year FROM resources
+     WHERE status = 'approved' AND id != ? AND author != ?
+       AND year BETWEEN ? - 10 AND ? + 10
+     ORDER BY ABS(year - ?) ASC, id ASC LIMIT 3"
+);
+$sameEraStmt->execute([$doc['id'], $doc['author'], $doc['year'], $doc['year'], $doc['year']]);
+$sameEra = $sameEraStmt->fetchAll(PDO::FETCH_ASSOC);
+
 $pageTitle = sprintf('«%s» — %s (%d)', $doc['title'], $doc['author'], $doc['year']);
 $flatExcerpt = trim(preg_replace('/\s+/', ' ', $doc['excerpt'] ?? ''));
 $metaDescription = mb_strlen($flatExcerpt) > 300
     ? rtrim(mb_substr($flatExcerpt, 0, 297)) . '…'
     : $flatExcerpt;
-$pageUrl = base_url() . '/documento/' . $doc['id'];
+$pageUrl = base_url() . $canonicalPath;
 $timelineUrl = '/linea/' . $doc['year'] . '#doc-' . $doc['id'];
 
 $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
@@ -81,7 +110,7 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
   <script src="/assets/js/font-scale.js?v=1"></script>
-  <link rel="stylesheet" href="/assets/css/styles.css?v=36">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=39">
   <script type="application/ld+json"><?= json_encode([
       '@context' => 'https://schema.org',
       '@type' => 'Article',
@@ -110,14 +139,14 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
     </div>
     <div class="[ center ]">
       <p class="eyebrow">Archivo colaborativo · 1810 — hoy</p>
-      <p class="doc-site-name">Línea de Tiempo del Pensamiento Nacional y Popular Argentino</p>
+      <p class="doc-site-name"><a href="/">Línea de Tiempo del Pensamiento Nacional y Popular Argentino</a></p>
     </div>
   </header>
 
   <main class="doc-page">
     <div class="doc-rail">
       <?php if ($prev): ?>
-        <a class="doc-neighbor" href="/documento/<?= (int) $prev['id'] ?>">
+        <a class="doc-neighbor" href="<?= $e(document_path($prev)) ?>">
           <span class="doc-neighbor-year"><?= (int) $prev['year'] ?></span>
           <span class="doc-neighbor-card">
             <span class="doc-neighbor-title"><?= $e($prev['title']) ?></span>
@@ -144,7 +173,7 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
       </article>
 
       <?php if ($next): ?>
-        <a class="doc-neighbor" href="/documento/<?= (int) $next['id'] ?>">
+        <a class="doc-neighbor" href="<?= $e(document_path($next)) ?>">
           <span class="doc-neighbor-year"><?= (int) $next['year'] ?></span>
           <span class="doc-neighbor-card">
             <span class="doc-neighbor-title"><?= $e($next['title']) ?></span>
@@ -154,8 +183,43 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
       <?php endif; ?>
     </div>
 
+    <?php if ($sameAuthor || $sameEra): ?>
+      <section class="doc-related" aria-labelledby="related-heading">
+        <h2 id="related-heading">Documentos relacionados</h2>
+
+        <?php if ($sameAuthor): ?>
+          <h3>Más de <?= $e($doc['author']) ?></h3>
+          <ul class="doc-related-list">
+            <?php foreach ($sameAuthor as $rel): ?>
+              <li>
+                <a href="<?= $e(document_path($rel)) ?>">
+                  <span class="doc-related-year"><?= (int) $rel['year'] ?></span>
+                  <span class="doc-related-title"><?= $e($rel['title']) ?></span>
+                </a>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+
+        <?php if ($sameEra): ?>
+          <h3>De la misma época</h3>
+          <ul class="doc-related-list">
+            <?php foreach ($sameEra as $rel): ?>
+              <li>
+                <a href="<?= $e(document_path($rel)) ?>">
+                  <span class="doc-related-year"><?= (int) $rel['year'] ?></span>
+                  <span class="doc-related-title"><?= $e($rel['title']) ?></span>
+                  <span class="doc-related-author"><?= $e($rel['author']) ?></span>
+                </a>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+      </section>
+    <?php endif; ?>
+
     <p class="doc-cta">
-      <a class="btn btn-primary" href="<?= $e($timelineUrl) ?>">Ir a la línea de tiempo Nacional y Popular</a>
+      <a class="btn btn-ghost" href="<?= $e($timelineUrl) ?>">Ver este documento en la línea de tiempo</a>
     </p>
   </main>
 
@@ -348,8 +412,9 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
       'author' => $doc['author'],
       'year' => (int) $doc['year'],
       'excerpt' => $doc['excerpt'],
+      'path' => $canonicalPath,
   ], JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?></script>
-  <script src="/assets/js/share.js?v=4"></script>
+  <script src="/assets/js/share.js?v=5"></script>
   <script src="/assets/js/documento.js?v=1"></script>
   <script src="/assets/js/credits.js?v=2"></script>
   <script src="/assets/js/feedback.js?v=3"></script>

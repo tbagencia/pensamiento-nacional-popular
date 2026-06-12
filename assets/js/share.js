@@ -79,8 +79,9 @@ function initShare(root, resolveItem) {
 
 	function shareDocument(item, btn, card) {
 		// Path-based URL: crawlers never see hash fragments, and this one
-		// serves per-document Open Graph tags.
-		const url = `${location.origin}/documento/${item.id}`;
+		// serves per-document Open Graph tags. The server provides the
+		// canonical slugged path; the bare id is a fallback that 301s to it.
+		const url = `${location.origin}${item.path ?? `/documento/${item.id}`}`;
 		const text = shareText(item);
 
 		if (navigator.share && shareTouchOnly.matches) {

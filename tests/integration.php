@@ -105,17 +105,30 @@ function request(string $method, string $path, array $opts = []): array
         curl_setopt($ch, CURLOPT_COOKIEFILE, $jar);
     }
 
+    $resHeaders = [];
     curl_setopt_array($ch, [
         CURLOPT_CUSTOMREQUEST => $method,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_TIMEOUT => 10,
+        CURLOPT_HEADERFUNCTION => function ($ch, $line) use (&$resHeaders) {
+            if (str_contains($line, ':')) {
+                [$name, $value] = explode(':', $line, 2);
+                $resHeaders[strtolower(trim($name))] = trim($value);
+            }
+            return strlen($line);
+        },
     ]);
     $body = (string) curl_exec($ch);
     $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     curl_close($ch);
 
-    return ['status' => $status, 'body' => $body, 'json' => json_decode($body, true)];
+    return [
+        'status' => $status,
+        'body' => $body,
+        'json' => json_decode($body, true),
+        'headers' => $resHeaders,
+    ];
 }
 
 function db(): PDO
@@ -154,7 +167,17 @@ check(request('GET', '/tipo/discurso')['status'] === 200, 'type filter URL respo
 check(request('GET', '/tipo/zarzuela')['status'] === 302, 'unknown type redirects home');
 
 section('Document page (SEO)');
+$canonicalDoc1 = '/documento/1-plan-de-operaciones-mariano-moreno';
 $res = request('GET', '/documento/1');
+check($res['status'] === 301, 'bare id 301s to the slugged URL');
+check(($res['headers']['location'] ?? '') === $canonicalDoc1, 'redirect targets the canonical slug', $res['headers']);
+$res = request('GET', '/documento/1-slug-viejo');
+check(
+    $res['status'] === 301 && ($res['headers']['location'] ?? '') === $canonicalDoc1,
+    'stale slug 301s to the canonical slug',
+    $res['headers']
+);
+$res = request('GET', $canonicalDoc1);
 check($res['status'] === 200, 'document page responds 200');
 check(str_contains($res['body'], 'og:title'), 'page carries Open Graph tags');
 check(str_contains($res['body'], 'Plan de Operaciones'), 'page title quotes the document', $res['body']);
@@ -172,10 +195,20 @@ check(str_contains($res['body'], 'doc-neighbor'), 'page links its neighbouring d
 check(str_contains($res['body'], 'id="doc-data"'), 'share payload is inlined for the share menu');
 check(request('GET', '/documento/99999')['status'] === 302, 'unknown document redirects home');
 
+section('Related documents');
+$peronId = (int) db()->query(
+    "SELECT id FROM resources WHERE author = 'Juan Domingo Perón' AND status = 'approved' ORDER BY id LIMIT 1"
+)->fetchColumn();
+$location = request('GET', "/documento/$peronId")['headers']['location'] ?? '';
+$res = request('GET', $location);
+check(str_contains($res['body'], 'doc-related'), 'document page renders a related section', $location);
+check(str_contains($res['body'], 'Más de Juan Domingo Perón'), 'related section groups by the same author');
+check(str_contains($res['body'], 'De la misma época'), 'related section groups by era');
+
 section('Sitemap');
 $res = request('GET', '/sitemap.xml');
 check($res['status'] === 200, 'sitemap responds 200');
-check(str_contains($res['body'], '/documento/1</loc>'), 'sitemap lists approved documents');
+check(str_contains($res['body'], $canonicalDoc1 . '</loc>'), 'sitemap lists approved documents with slugged URLs');
 check(str_contains($res['body'], '<lastmod>'), 'entries carry lastmod dates');
 check(!str_contains($res['body'], '/cargar'), 'form page is left out of the sitemap');
 
