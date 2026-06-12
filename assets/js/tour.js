@@ -168,7 +168,9 @@
 			next += dir;
 		}
 		if (next >= steps.length) {
+			// Tour completed: bring the visitor back to the top of the page.
 			end();
+			window.scrollTo({ top: 0, behavior: "smooth" });
 			return;
 		}
 		current = Math.max(0, next);
