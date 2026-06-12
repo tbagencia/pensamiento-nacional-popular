@@ -641,7 +641,7 @@ a {
 
 .year-nav {
 	display: flex;
-	gap: var(--space-xs);
+	gap: var(--space-2xs);
 	overflow-x: auto;
 	/* The leading padding clears the floating search circle pinned at
      the top-left corner once the nav sticks to the viewport. */

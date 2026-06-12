@@ -382,19 +382,19 @@ function typeFromUrl() {
 }
 
 function scrollToYear(year, behavior) {
-	// Chrome keeps a single programmatic smooth scroll alive: animating
-	// the year bar now would kill the document scroll below. Mark the
-	// chip without moving the bar, silence the spy, and align the bar
-	// only once the document lands.
+	// Chrome keeps a single programmatic smooth scroll alive, so the bar
+	// aligns INSTANTLY before the document starts gliding: the chip is
+	// already in place during the ride and no bar animation survives to
+	// kill the document scroll. The spy stays silent mid-flight.
 	setActiveChip(year, false);
+	const chip = yearNav.querySelector('.year-chip[aria-current="location"]');
+	if (chip) alignBarToChip(chip, "instant");
 	jumping = true;
 	clearTimeout(jumpTimer);
 	const land = () => {
 		jumping = false;
 		clearTimeout(jumpTimer);
 		window.removeEventListener("scrollend", land);
-		const chip = yearNav.querySelector('.year-chip[aria-current="location"]');
-		if (chip) alignBarToChip(chip);
 	};
 	window.addEventListener("scrollend", land);
 	jumpTimer = setTimeout(land, 1200); // browsers without scrollend
@@ -469,8 +469,9 @@ const CHIP_SCALES = [1.15, 1.08, 1.03, 1];
 
 /** Desktop rail: keep the active chip centered. Mobile bar: pin it as
     the first pill right after the floating search circle. */
-function alignBarToChip(chip) {
-	const behavior = prefersReducedMotion.matches ? "auto" : "smooth";
+function alignBarToChip(chip, behaviorOverride = null) {
+	const behavior =
+		behaviorOverride ?? (prefersReducedMotion.matches ? "auto" : "smooth");
 	if (desktopRail.matches) {
 		yearNav.scrollTo({
 			top: chip.offsetTop - yearNav.clientHeight / 2 + chip.offsetHeight / 2,
