@@ -81,7 +81,7 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
   <script src="/assets/js/font-scale.js?v=1"></script>
-  <link rel="stylesheet" href="/assets/css/styles.css?v=23">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=24">
   <script type="application/ld+json"><?= json_encode([
       '@context' => 'https://schema.org',
       '@type' => 'Article',

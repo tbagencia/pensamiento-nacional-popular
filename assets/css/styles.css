@@ -1765,6 +1765,16 @@ input[readonly] {
 	font-size: var(--text--1);
 }
 
+/* ---------- Block: status screens (post-action) ---------- */
+
+/* Site eyebrow framing the card from outside. */
+.status-screen {
+	text-align: center;
+}
+.status-screen .card {
+	margin-inline: auto;
+}
+
 /* ---------- Block: status mark (post-action screens) ---------- */
 
 .status-mark {
