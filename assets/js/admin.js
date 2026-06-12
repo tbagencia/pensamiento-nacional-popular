@@ -6,6 +6,7 @@
  * - Reject asks for a second click too, and offers an optional reason
  *   that travels in the email the submitter receives.
  * - Edit form saves via fetch and refreshes the card in place.
+ * - Search box live-filters the cards of the current tab.
  * - Without JS, the forms fall back to a regular POST + redirect.
  */
 
@@ -168,6 +169,48 @@ function refreshCard(card, resource) {
     }
   } else {
     source?.remove();
+  }
+}
+
+// Live search over the current tab. Matches title, author, year, type,
+// excerpt and submitter line, ignoring case and accents. Only visible
+// fields are matched: the whole card text would include every type name
+// from the edit form's <select>, making e.g. "audio" match all cards.
+const SEARCH_FIELDS = ['h2', '.author', '.excerpt', '.badge-year', '.badge-type', '.meta'];
+const searchInput = document.getElementById('admin-search');
+
+searchInput?.addEventListener('input', () => filterCards(searchInput.value));
+
+function normalizeText(text) {
+  return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function filterCards(query) {
+  const list = document.querySelector('.admin-list');
+  const cards = list.querySelectorAll('.admin-card');
+  const q = normalizeText(query.trim());
+  let visible = 0;
+
+  for (const card of cards) {
+    const haystack = SEARCH_FIELDS
+      .map((sel) => card.querySelector(sel)?.textContent ?? '')
+      .join(' ');
+    const match = q === '' || normalizeText(haystack).includes(q);
+    card.hidden = !match;
+    if (match) visible += 1;
+  }
+
+  let empty = list.querySelector('[data-search-empty]');
+  if (visible === 0 && cards.length > 0) {
+    if (!empty) {
+      empty = document.createElement('p');
+      empty.className = 'empty';
+      empty.dataset.searchEmpty = '';
+      empty.textContent = 'Ningún documento coincide con la búsqueda.';
+      list.prepend(empty);
+    }
+  } else {
+    empty?.remove();
   }
 }
 

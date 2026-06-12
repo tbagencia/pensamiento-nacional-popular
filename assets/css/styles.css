@@ -1986,12 +1986,35 @@ input[readonly] {
 	font-weight: 700;
 }
 
+/* Search lives inside the sticky tab bar so it follows long lists.
+   Mobile: full row under the 2x2 tab grid; desktop: pushed to the end. */
+.admin-search {
+	grid-column: 1 / -1;
+}
+
+.admin-search input[type="search"] {
+	inline-size: 100%;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	padding: var(--space-2xs) var(--space-xs);
+	font-size: var(--text--1);
+	font-family: inherit;
+	background: var(--surface-warm);
+	color: var(--ink);
+	transition: border-color 0.15s ease;
+}
+
 @media (min-width: 640px) {
 	.admin-tabs {
 		display: flex;
 	}
 	.admin-tabs a {
 		flex: 0 0 auto;
+	}
+	.admin-search {
+		flex: 1 1 auto;
+		margin-inline-start: auto;
+		max-inline-size: 22rem;
 	}
 }
 
