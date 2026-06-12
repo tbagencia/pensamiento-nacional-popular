@@ -37,7 +37,30 @@ function db(): PDO
     if ($isNew) {
         seed($pdo);
     }
+    backfill_seed_source_urls($pdo);
     return $pdo;
+}
+
+/**
+ * One-off migration for databases created before the seed carried reference
+ * links: fills source_url on rows matching a seed entry by year + title.
+ * PRAGMA user_version gates it so it only runs once per database.
+ */
+function backfill_seed_source_urls(PDO $pdo): void
+{
+    if ((int) $pdo->query('PRAGMA user_version')->fetchColumn() >= 1) {
+        return;
+    }
+    $stmt = $pdo->prepare(
+        "UPDATE resources SET source_url = ?
+         WHERE year = ? AND title = ? AND (source_url IS NULL OR source_url = '')"
+    );
+    foreach (seed_entries() as [$year, , , $title, , $url]) {
+        if ($url !== null) {
+            $stmt->execute([$url, $year, $title]);
+        }
+    }
+    $pdo->exec('PRAGMA user_version = 1');
 }
 
 /** Seed with public-domain historical entries so the timeline is not empty. */
