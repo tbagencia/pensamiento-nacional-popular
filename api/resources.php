@@ -18,4 +18,15 @@ foreach ($resources as &$resource) {
 }
 unset($resource);
 
-json_response(['resources' => $resources]);
+// The timeline renders period bands as section headers.
+$periods = array_map(
+    fn (array $p): array => [
+        'id' => (int) $p['id'],
+        'name' => $p['name'],
+        'start_year' => (int) $p['start_year'],
+        'end_year' => $p['end_year'] !== null ? (int) $p['end_year'] : null,
+    ],
+    periods(db())
+);
+
+json_response(['resources' => $resources, 'periods' => $periods]);

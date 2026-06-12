@@ -48,13 +48,80 @@ function db(): PDO
     )");
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resource_authors_author ON resource_authors(author_id)');
 
+    // Historiographic periods: the editorial chapters of the timeline.
+    // Curated from the moderation panel; end_year NULL means "today".
+    $pdo->exec("CREATE TABLE IF NOT EXISTS periods (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        start_year INTEGER NOT NULL,
+        end_year INTEGER
+    )");
+
     if ($isNew) {
         seed($pdo);
-        $pdo->exec('PRAGMA user_version = 3');
+        seed_periods($pdo);
+        $pdo->exec('PRAGMA user_version = 4');
     }
     backfill_seed_source_urls($pdo);
     migrate_to_author_ids($pdo);
+    backfill_periods($pdo);
     return $pdo;
+}
+
+/** Historiographic periods in chronological order. */
+function periods(PDO $pdo): array
+{
+    return $pdo
+        ->query('SELECT id, name, start_year, end_year FROM periods ORDER BY start_year')
+        ->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/** The period a year falls in, or null when no period covers it. */
+function period_for(PDO $pdo, int $year): ?array
+{
+    $stmt = $pdo->prepare(
+        'SELECT id, name, start_year, end_year FROM periods
+         WHERE start_year <= ? AND (end_year IS NULL OR end_year >= ?)
+         ORDER BY start_year LIMIT 1'
+    );
+    $stmt->execute([$year, $year]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+
+/**
+ * Initial period table, drafted from standard Argentine historiographic
+ * periodization (the same brackets bibliographic subject headings use).
+ * Editorial content: moderators adjust names and bounds from the panel.
+ */
+function seed_periods(PDO $pdo): void
+{
+    $stmt = $pdo->prepare('INSERT INTO periods (name, start_year, end_year) VALUES (?, ?, ?)');
+    foreach ([
+        ['Orígenes del pensamiento nacional', 1810, 1915],
+        ['Gobiernos radicales', 1916, 1929],
+        ['Restauración conservadora', 1930, 1942],
+        ['Primer peronismo', 1943, 1955],
+        ['Proscripción y resistencia', 1956, 1972],
+        ['Tercer peronismo', 1973, 1975],
+        ['Dictadura', 1976, 1982],
+        ['Recuperación democrática y neoliberalismo', 1983, 2002],
+        ['Kirchnerismo', 2003, 2015],
+        ['Tiempo presente', 2016, null],
+    ] as [$name, $start, $end]) {
+        $stmt->execute([$name, $start, $end]);
+    }
+}
+
+/** One-off migration (PRAGMA user_version 4): seeds the period table. */
+function backfill_periods(PDO $pdo): void
+{
+    if ((int) $pdo->query('PRAGMA user_version')->fetchColumn() >= 4) {
+        return;
+    }
+    if ((int) $pdo->query('SELECT COUNT(*) FROM periods')->fetchColumn() === 0) {
+        seed_periods($pdo);
+    }
+    $pdo->exec('PRAGMA user_version = 4');
 }
 
 /**

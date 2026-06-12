@@ -217,7 +217,10 @@ $location = request('GET', "/documento/$peronId")['headers']['location'] ?? '';
 $res = request('GET', $location);
 check(str_contains($res['body'], 'doc-related'), 'document page renders a related section', $location);
 check(str_contains($res['body'], 'Más de Juan Domingo Perón'), 'related section groups by the same author');
-check(str_contains($res['body'], 'De la misma época'), 'related section groups by era');
+check(
+    str_contains($res['body'], 'Del mismo período: Primer peronismo'),
+    'related section groups by historiographic period'
+);
 
 // Canonical authors connect collective works with their individual authors.
 $zoncerasId = (int) db()->query(
@@ -272,6 +275,16 @@ check(($authors[0]['slug'] ?? '') === 'juan-domingo-peron', 'authors carry their
 
 check(request('GET', '/autor/juan-domingo-peron')['status'] === 200, 'author filter URL responds');
 check(request('GET', '/autor/')['status'] === 302, 'slug-less /autor redirects home');
+
+section('Periods');
+$res = request('GET', '/api/resources.php');
+$periods = $res['json']['periods'] ?? [];
+check(count($periods) === 10, 'resources API ships the seeded periods', count($periods));
+check(
+    ($periods[0]['name'] ?? '') === 'Orígenes del pensamiento nacional' && $periods[0]['start_year'] === 1810,
+    'periods come ordered by start year'
+);
+check(end($periods)['end_year'] === null, 'the open-ended period reaches today');
 
 section('Sitemap');
 $res = request('GET', '/sitemap.xml');
@@ -479,6 +492,50 @@ $res = request('POST', ADMIN_URL, [
 check(($res['json']['ok'] ?? false), 'AJAX delete returns ok');
 $count = db()->query("SELECT COUNT(*) FROM resources WHERE id = $id")->fetchColumn();
 check((int) $count === 0, 'deleted resource is gone');
+
+section('Admin period management');
+$periodId = (int) db()->query("SELECT id FROM periods WHERE name = 'Tiempo presente'")->fetchColumn();
+request('POST', ADMIN_URL, [
+    'form' => [
+        'action' => 'period_save', 'id' => $periodId, 'csrf' => $csrf,
+        'name' => 'Presente', 'start_year' => 2016, 'end_year' => '',
+    ],
+    'cookies' => 'admin',
+]);
+check(
+    db()->query("SELECT name FROM periods WHERE id = $periodId")->fetchColumn() === 'Presente',
+    'period edit persists'
+);
+
+$res = request('POST', ADMIN_URL, [
+    'form' => [
+        'action' => 'period_save', 'id' => 0, 'csrf' => $csrf,
+        'name' => 'Solapado', 'start_year' => 1950, 'end_year' => 1960,
+    ],
+    'cookies' => 'admin',
+]);
+check($res['status'] === 422, 'overlapping period is rejected with 422', $res['status']);
+
+request('POST', ADMIN_URL, [
+    'form' => ['action' => 'period_delete', 'id' => $periodId, 'csrf' => $csrf],
+    'cookies' => 'admin',
+]);
+check(
+    (int) db()->query("SELECT COUNT(*) FROM periods WHERE id = $periodId")->fetchColumn() === 0,
+    'period delete persists'
+);
+
+request('POST', ADMIN_URL, [
+    'form' => [
+        'action' => 'period_save', 'id' => 0, 'csrf' => $csrf,
+        'name' => 'Tiempo presente', 'start_year' => 2016, 'end_year' => '',
+    ],
+    'cookies' => 'admin',
+]);
+check(
+    (int) db()->query('SELECT COUNT(*) FROM periods')->fetchColumn() === 10,
+    'new period can be added once the slot is free'
+);
 
 /* ---------- Summary ---------- */
 

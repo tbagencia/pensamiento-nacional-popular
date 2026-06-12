@@ -37,6 +37,48 @@ if (($_POST['action'] ?? '') === 'login') {
 $isAdmin = !empty($_SESSION['admin']);
 $validTabs = ['pending_review', 'pending_email', 'approved', 'rejected'];
 
+/** Validates and inserts/updates a period; periods must not overlap. */
+function save_period(PDO $pdo, array $input): void
+{
+    $id = (int) ($input['id'] ?? 0);
+    $name = trim($input['name'] ?? '');
+    $start = (int) ($input['start_year'] ?? 0);
+    $end = trim($input['end_year'] ?? '') === '' ? null : (int) $input['end_year'];
+
+    $errors = [];
+    if ($name === '' || mb_strlen($name) > 80) {
+        $errors[] = 'El nombre es obligatorio (máximo 80 caracteres).';
+    }
+    if ($start < MIN_YEAR || $start > 2100) {
+        $errors[] = 'El año de inicio debe estar entre ' . MIN_YEAR . ' y 2100.';
+    }
+    if ($end !== null && $end < $start) {
+        $errors[] = 'El año de fin no puede ser anterior al de inicio.';
+    }
+    foreach (periods($pdo) as $other) {
+        if ((int) $other['id'] === $id) {
+            continue;
+        }
+        $otherEnd = $other['end_year'] !== null ? (int) $other['end_year'] : PHP_INT_MAX;
+        if ($start <= $otherEnd && (int) $other['start_year'] <= ($end ?? PHP_INT_MAX)) {
+            $errors[] = "Se superpone con «{$other['name']}».";
+            break;
+        }
+    }
+    if ($errors) {
+        http_response_code(422);
+        exit('Datos inválidos: ' . implode(' ', $errors));
+    }
+
+    if ($id > 0) {
+        $pdo->prepare('UPDATE periods SET name = ?, start_year = ?, end_year = ? WHERE id = ?')
+            ->execute([$name, $start, $end, $id]);
+    } else {
+        $pdo->prepare('INSERT INTO periods (name, start_year, end_year) VALUES (?, ?, ?)')
+            ->execute([$name, $start, $end]);
+    }
+}
+
 function tab_counts(PDO $pdo, array $tabs): array
 {
     $counts = [];
@@ -46,6 +88,23 @@ function tab_counts(PDO $pdo, array $tabs): array
         $counts[$tab] = (int) $stmt->fetchColumn();
     }
     return $counts;
+}
+
+// Period management: plain POST + redirect — edits are rare and the
+// curated table is tiny, no AJAX needed.
+if ($isAdmin && in_array($_POST['action'] ?? '', ['period_save', 'period_delete'], true)) {
+    if (!hash_equals($_SESSION['csrf'] ?? '', $_POST['csrf'] ?? '')) {
+        http_response_code(403);
+        exit('Invalid CSRF token');
+    }
+    $pdo = db();
+    if ($_POST['action'] === 'period_save') {
+        save_period($pdo, $_POST);
+    } else {
+        $pdo->prepare('DELETE FROM periods WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+    }
+    header('Location: index.php?tab=periodos');
+    exit;
 }
 
 if ($isAdmin && in_array($_POST['action'] ?? '', ['approve', 'reject', 'delete', 'edit'], true)) {
@@ -169,7 +228,7 @@ function edit_resource(PDO $pdo, int $id, array $input, bool $isAjax, array $val
 }
 
 $tab = $_GET['tab'] ?? 'pending_review';
-if (!in_array($tab, $validTabs, true)) {
+if (!in_array($tab, $validTabs, true) && $tab !== 'periodos') {
     $tab = 'pending_review';
 }
 
@@ -178,12 +237,14 @@ $counts = [];
 if ($isAdmin) {
     $pdo = db();
     $counts = tab_counts($pdo, $validTabs);
-    $stmt = $pdo->prepare(
-        "SELECT *, " . author_label_sql('resources') . " AS author
-         FROM resources WHERE status = ? ORDER BY created_at DESC"
-    );
-    $stmt->execute([$tab]);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if ($tab !== 'periodos') {
+        $stmt = $pdo->prepare(
+            "SELECT *, " . author_label_sql('resources') . " AS author
+             FROM resources WHERE status = ? ORDER BY created_at DESC"
+        );
+        $stmt->execute([$tab]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
 
 $tabLabels = [
@@ -213,7 +274,7 @@ function e(?string $s): string
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=40">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=44">
 </head>
 <body class="admin-body">
 
@@ -247,6 +308,9 @@ function e(?string $s): string
         <span class="count"><?= $counts[$key] ?></span>
       </a>
     <?php endforeach; ?>
+    <a href="?tab=periodos" class="<?= $tab === 'periodos' ? 'active' : '' ?>">
+      <span class="label">Períodos</span>
+    </a>
     <div class="admin-search">
       <input type="search" id="admin-search" placeholder="Buscar por título, autor, año o email"
              autocomplete="off" aria-label="Buscar documentos en esta categoría">
@@ -254,7 +318,49 @@ function e(?string $s): string
   </nav>
 
   <main class="admin-list">
-    <?php if (!$rows): ?>
+    <?php if ($tab === 'periodos'): ?>
+      <section class="card admin-card periods-admin">
+        <h2>Períodos historiográficos</h2>
+        <p class="meta">
+          Los capítulos de la línea de tiempo. Sin año de fin, el período
+          llega hasta hoy. Los períodos no pueden superponerse.
+        </p>
+        <?php foreach (periods($pdo) as $p): ?>
+          <div class="period-row">
+            <form method="post" class="period-form">
+              <input type="hidden" name="action" value="period_save">
+              <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+              <input type="hidden" name="csrf" value="<?= e($_SESSION['csrf'] ?? '') ?>">
+              <input type="text" name="name" maxlength="80" required value="<?= e($p['name']) ?>" aria-label="Nombre del período">
+              <input type="number" name="start_year" min="<?= MIN_YEAR ?>" max="2100" required value="<?= (int) $p['start_year'] ?>" aria-label="Año de inicio">
+              <input type="number" name="end_year" min="<?= MIN_YEAR ?>" max="2100" value="<?= $p['end_year'] !== null ? (int) $p['end_year'] : '' ?>" placeholder="hoy" aria-label="Año de fin">
+              <button type="submit" class="btn btn-primary">Guardar</button>
+            </form>
+            <form method="post" class="period-delete-form">
+              <input type="hidden" name="action" value="period_delete">
+              <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+              <input type="hidden" name="csrf" value="<?= e($_SESSION['csrf'] ?? '') ?>">
+              <button type="submit" class="btn btn-ghost">Eliminar</button>
+            </form>
+          </div>
+        <?php endforeach; ?>
+
+        <h3>Agregar período</h3>
+        <div class="period-row">
+          <form method="post" class="period-form">
+            <input type="hidden" name="action" value="period_save">
+            <input type="hidden" name="id" value="0">
+            <input type="hidden" name="csrf" value="<?= e($_SESSION['csrf'] ?? '') ?>">
+            <input type="text" name="name" maxlength="80" required placeholder="Nombre del período" aria-label="Nombre del período">
+            <input type="number" name="start_year" min="<?= MIN_YEAR ?>" max="2100" required placeholder="Inicio" aria-label="Año de inicio">
+            <input type="number" name="end_year" min="<?= MIN_YEAR ?>" max="2100" placeholder="hoy" aria-label="Año de fin">
+            <button type="submit" class="btn btn-primary">Agregar</button>
+          </form>
+        </div>
+      </section>
+    <?php endif; ?>
+
+    <?php if (!$rows && $tab !== 'periodos'): ?>
       <p class="empty">No hay documentos en esta categoría.</p>
     <?php endif; ?>
 
@@ -360,7 +466,7 @@ function e(?string $s): string
   ) ?></script>
   <div id="toasts" class="toasts" aria-live="polite"></div>
   <script src="/assets/js/author-tags.js?v=1"></script>
-  <script src="/assets/js/admin.js?v=6"></script>
+  <script src="/assets/js/admin.js?v=7"></script>
 <?php endif; ?>
 
 </body>

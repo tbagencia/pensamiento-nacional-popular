@@ -228,6 +228,25 @@ a {
 	cursor: wait;
 }
 
+/* Period management in the panel: one inline row per period. */
+.periods-admin h3 {
+	margin-block: var(--space-m) var(--space-2xs);
+}
+
+.period-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2xs);
+	margin-block-end: var(--space-2xs);
+}
+
+.period-row .period-form {
+	display: grid;
+	grid-template-columns: 1fr 6rem 6rem auto;
+	gap: var(--space-2xs);
+	flex: 1;
+}
+
 /* ---------- Block: autocomplete ---------- */
 
 .has-autocomplete {
@@ -1061,6 +1080,73 @@ main.center {
 		transparent
 	);
 	border-radius: var(--radius-pill);
+}
+
+/* Period bands: the editorial chapters of the archive, opening each
+   historiographic period above its first year. They borrow the hero
+   header's identity — deep blue, gold glow — so they read as chapter
+   titles, not another stop on the line. */
+.timeline-period {
+	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--space-3xs) var(--space-s);
+	margin-block-start: var(--space-2xl);
+	padding: var(--space-xs) var(--space-m);
+	background:
+		radial-gradient(
+			circle at 92% -40%,
+			rgba(246, 180, 14, 0.35),
+			transparent 60%
+		),
+		linear-gradient(
+			165deg,
+			var(--brand-dark) 0%,
+			var(--brand-deep) 70%,
+			var(--brand) 140%
+		),
+		var(--brand-deep);
+	border-inline-start: 4px solid var(--gold);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-1);
+}
+
+.timeline-period:first-child {
+	margin-block-start: var(--space-l);
+}
+
+/* A gold diamond on the rail: chapters get their own milestone mark.
+   The extra -4px cancels the band's gold border: absolute offsets are
+   measured from the padding box, i.e. inside the border. */
+.timeline-period::before {
+	content: "";
+	position: absolute;
+	left: calc(-1 * var(--space-m) + var(--space-3xs) - 4px - 4px);
+	top: calc(50% - 6.5px);
+	width: 13px;
+	height: 13px;
+	rotate: 45deg;
+	background: var(--gold);
+	border: 3px solid var(--paper);
+	box-shadow: 0 0 0 1px var(--gold);
+}
+
+.period-name {
+	font-family: var(--font-display);
+	font-size: var(--text-1);
+	font-weight: 700;
+	color: #fff;
+}
+
+.period-years {
+	font-family: var(--font-ui);
+	font-size: var(--text--1);
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.06em;
+	color: var(--gold);
 }
 
 .timeline-year {
@@ -2397,6 +2483,9 @@ input[readonly] {
 	}
 	.timeline-year::before {
 		left: calc(-1 * var(--space-xl) + var(--space-xs) - 4px);
+	}
+	.timeline-period::before {
+		left: calc(-1 * var(--space-xl) + var(--space-xs) - 4px - 4px);
 	}
 }
 

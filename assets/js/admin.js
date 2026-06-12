@@ -223,6 +223,25 @@ function filterCards(query) {
   }
 }
 
+// Deleting a period asks for a second click, like document deletion.
+for (const form of document.querySelectorAll('.period-delete-form')) {
+  form.addEventListener('submit', (e) => {
+    const button = form.querySelector('button');
+    if (button.dataset.state !== 'confirming') {
+      e.preventDefault();
+      button.dataset.state = 'confirming';
+      button.dataset.label = button.textContent;
+      button.textContent = '¿Confirmar?';
+      setTimeout(() => {
+        if (button.dataset.state === 'confirming') {
+          button.dataset.state = '';
+          button.textContent = button.dataset.label;
+        }
+      }, CONFIRM_RESET_MS);
+    }
+  });
+}
+
 // Upload timestamps arrive in UTC inside <time> elements; render them
 // in the moderator's own timezone as dd/mm/aaaa hh:mm. The raw UTC
 // string stays as the no-JS fallback.

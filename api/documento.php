@@ -83,19 +83,28 @@ $sameAuthorStmt = db()->prepare(
 $sameAuthorStmt->execute([$doc['id'], $doc['id']]);
 $sameAuthor = pick_related($sameAuthorStmt->fetchAll(PDO::FETCH_ASSOC), $neighborIds);
 
-$sameEraStmt = db()->prepare(
-    "SELECT id, title, " . author_label_sql('resources') . " AS author, year
-     FROM resources
-     WHERE status = 'approved' AND id != ?
-       AND year BETWEEN ? - 10 AND ? + 10
-       AND id NOT IN (
-           SELECT resource_id FROM resource_authors
-           WHERE author_id IN (SELECT author_id FROM resource_authors WHERE resource_id = ?)
-       )
-     ORDER BY ABS(year - ?) ASC, id ASC LIMIT 5"
-);
-$sameEraStmt->execute([$doc['id'], $doc['year'], $doc['year'], $doc['id'], $doc['year']]);
-$sameEra = pick_related($sameEraStmt->fetchAll(PDO::FETCH_ASSOC), $neighborIds);
+// The era group follows the curated historiographic periods: documents
+// of the same period by other authors, nearest years first.
+$period = period_for(db(), (int) $doc['year']);
+$sameEra = [];
+if ($period) {
+    $sameEraStmt = db()->prepare(
+        "SELECT id, title, " . author_label_sql('resources') . " AS author, year
+         FROM resources
+         WHERE status = 'approved' AND id != ?
+           AND year BETWEEN ? AND ?
+           AND id NOT IN (
+               SELECT resource_id FROM resource_authors
+               WHERE author_id IN (SELECT author_id FROM resource_authors WHERE resource_id = ?)
+           )
+         ORDER BY ABS(year - ?) ASC, id ASC LIMIT 5"
+    );
+    $sameEraStmt->execute([
+        $doc['id'], $period['start_year'], $period['end_year'] ?? 9999,
+        $doc['id'], $doc['year'],
+    ]);
+    $sameEra = pick_related($sameEraStmt->fetchAll(PDO::FETCH_ASSOC), $neighborIds);
+}
 
 // The heading reads from the document's linked authors — the database
 // is the single source of authorship truth. One author: "Más de X";
@@ -228,7 +237,7 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
           <?php endif; ?>
 
           <?php if ($sameEra): ?>
-            <h3>De la misma época</h3>
+            <h3>Del mismo período: <?= $e($period['name']) ?></h3>
             <ul class="doc-related-list">
               <?php foreach ($sameEra as $rel): ?>
                 <li>

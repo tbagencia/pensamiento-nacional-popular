@@ -29,6 +29,7 @@ const TYPE_LABELS = {
 
 let allResources = [];
 let allAuthors = [];
+let allPeriods = [];
 let activeType = null;
 let activeAuthor = null;
 let authorNavExpanded = false;
@@ -62,7 +63,8 @@ async function init() {
 			fetch("/api/authors.php"),
 		]);
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);
-		({ resources: allResources } = await res.json());
+		({ resources: allResources, periods: allPeriods = [] } =
+			await res.json());
 		// The author filter is an extra: without it the timeline still works.
 		allAuthors = authorsRes.ok ? (await authorsRes.json()).authors : [];
 
@@ -135,7 +137,26 @@ function renderTimeline(resources) {
 		return;
 	}
 
+	// Period bands are the editorial chapters of the archive: one opens
+	// before the first rendered year it covers, filters included.
+	let lastPeriodId = null;
+
 	for (const [year, items] of byYear) {
+		const period = allPeriods.find(
+			(p) =>
+				year >= p.start_year &&
+				(p.end_year === null || year <= p.end_year),
+		);
+		if (period && period.id !== lastPeriodId) {
+			const band = document.createElement("li");
+			band.className = "timeline-period";
+			band.innerHTML = `
+        <span class="period-name">${escapeHtml(period.name)}</span>
+        <span class="period-years">${period.start_year}–${period.end_year ?? "hoy"}</span>`;
+			timelineEl.appendChild(band);
+			lastPeriodId = period.id;
+		}
+
 		const li = document.createElement("li");
 		li.className = "timeline-year";
 		li.id = `year-${year}`;
