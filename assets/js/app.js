@@ -30,7 +30,11 @@ const TYPE_LABELS = {
 let allResources = [];
 let activeType = null;
 let searchWords = [];
-let spyObserver = null;
+let spyLine = 0;
+let spyTicking = false;
+let spyBound = false;
+let jumping = false;
+let jumpTimer = null;
 let revealObserver = null;
 
 const EXCERPT_COLLAPSE_LENGTH = 320;
@@ -378,14 +382,41 @@ function typeFromUrl() {
 }
 
 function scrollToYear(year, behavior) {
-	setActiveChip(year);
+	// Chrome keeps a single programmatic smooth scroll alive: animating
+	// the year bar now would kill the document scroll below. Mark the
+	// chip without moving the bar, silence the spy, and align the bar
+	// only once the document lands.
+	setActiveChip(year, false);
+	jumping = true;
+	clearTimeout(jumpTimer);
+	const land = () => {
+		jumping = false;
+		clearTimeout(jumpTimer);
+		window.removeEventListener("scrollend", land);
+		const chip = yearNav.querySelector('.year-chip[aria-current="location"]');
+		if (chip) alignBarToChip(chip);
+	};
+	window.addEventListener("scrollend", land);
+	jumpTimer = setTimeout(land, 1200); // browsers without scrollend
+
 	if (year === "all") {
 		window.scrollTo({ top: 0, behavior });
 		return;
 	}
-	document
-		.getElementById(`year-${year}`)
-		?.scrollIntoView({ behavior, block: "start" });
+	// Manual target math instead of scrollIntoView: Chrome miscalculates
+	// the destination under non-default zoom levels.
+	const section = document.getElementById(`year-${year}`);
+	if (!section) return;
+	let top;
+	if (desktopRail.matches) {
+		const margin = parseFloat(section.style.scrollMarginTop) || 0;
+		top = window.scrollY + section.getBoundingClientRect().top - margin;
+	} else {
+		// Land just past the spy line: the gold heading tucks fully under
+		// the bar and its gold chip takes over — never both at once.
+		top = window.scrollY + section.getBoundingClientRect().top - spyLine + 10;
+	}
+	window.scrollTo({ top: Math.max(0, top), behavior });
 }
 
 /* ---------- Friendly URLs (/linea/1945) ---------- */
@@ -436,9 +467,33 @@ function syncUrl(year) {
 // neighbours shrink with distance.
 const CHIP_SCALES = [1.15, 1.08, 1.03, 1];
 
-function setActiveChip(year) {
+/** Desktop rail: keep the active chip centered. Mobile bar: pin it as
+    the first pill right after the floating search circle. */
+function alignBarToChip(chip) {
+	const behavior = prefersReducedMotion.matches ? "auto" : "smooth";
+	if (desktopRail.matches) {
+		yearNav.scrollTo({
+			top: chip.offsetTop - yearNav.clientHeight / 2 + chip.offsetHeight / 2,
+			behavior,
+		});
+	} else {
+		const padLeft = parseFloat(getComputedStyle(yearNav).paddingLeft) || 0;
+		yearNav.scrollTo({ left: chip.offsetLeft - padLeft, behavior });
+	}
+}
+
+function setActiveChip(year, scrollBar = true) {
 	const chips = [...yearNav.querySelectorAll(".year-chip")];
 	const activeIndex = chips.findIndex((c) => c.dataset.year === String(year));
+
+	// Already the active chip: skip the redundant bar scroll, which would
+	// cancel any document smooth scroll in flight.
+	if (
+		activeIndex !== -1 &&
+		chips[activeIndex].getAttribute("aria-current") === "location"
+	) {
+		return;
+	}
 
 	chips.forEach((chip, i) => {
 		const distance = activeIndex === -1 ? Infinity : Math.abs(i - activeIndex);
@@ -448,22 +503,7 @@ function setActiveChip(year) {
 
 		if (i === activeIndex) {
 			chip.setAttribute("aria-current", "location");
-			// Keep the active chip centered in the scrollable nav
-			// (vertical rail on desktop, horizontal bar on mobile).
-			const behavior = prefersReducedMotion.matches ? "auto" : "smooth";
-			if (desktopRail.matches) {
-				yearNav.scrollTo({
-					top:
-						chip.offsetTop - yearNav.clientHeight / 2 + chip.offsetHeight / 2,
-					behavior,
-				});
-			} else {
-				yearNav.scrollTo({
-					left:
-						chip.offsetLeft - yearNav.clientWidth / 2 + chip.offsetWidth / 2,
-					behavior,
-				});
-			}
+			if (scrollBar) alignBarToChip(chip);
 		} else {
 			chip.removeAttribute("aria-current");
 		}
@@ -471,32 +511,59 @@ function setActiveChip(year) {
 }
 
 function setupScrollSpy() {
-	spyObserver?.disconnect();
-	const sections = timelineEl.querySelectorAll(".timeline-year");
-	if (!("IntersectionObserver" in window) || sections.length === 0) return;
+	// Activation line: a section is current once its top crosses it.
+	// Desktop keeps the upper-third behaviour. Mobile places it so the
+	// gold chip lights up exactly when the section's gold heading hides
+	// under the year bar — the two are never visible at once. Chip-click
+	// landings (scrollToYear) target this same line.
+	if (desktopRail.matches) {
+		spyLine = window.innerHeight * 0.3;
+	} else {
+		// May be negative: the heading sits below the section top, so the
+		// section must scroll past the viewport edge to fully hide it.
+		const pill = timelineEl.querySelector(".timeline-year > h2");
+		const pillBottom = pill ? pill.offsetTop + pill.offsetHeight : 0;
+		spyLine = yearNav.offsetHeight - pillBottom + 4;
+	}
 
-	const spy = new IntersectionObserver(
-		(entries) => {
-			for (const entry of entries) {
-				if (entry.isIntersecting) {
-					setActiveChip(entry.target.dataset.year);
-					syncUrl(entry.target.dataset.year);
-					for (const s of sections) {
-						if (s !== entry.target) delete s.dataset.current;
-					}
-					entry.target.dataset.current = "true";
-				}
-			}
-			// Above the first year section: highlight "Todos".
-			if (window.scrollY < timelineEl.offsetTop - yearNav.offsetHeight) {
-				setActiveChip("all");
-				syncUrl("all");
-			}
-		},
-		{ rootMargin: "-25% 0px -65% 0px" },
-	);
-	sections.forEach((s) => spy.observe(s));
-	spyObserver = spy;
+	if (!spyBound) {
+		spyBound = true;
+		window.addEventListener(
+			"scroll",
+			() => {
+				if (spyTicking) return;
+				spyTicking = true;
+				window.requestAnimationFrame(runSpy);
+			},
+			{ passive: true },
+		);
+	}
+}
+
+/** Deterministic scrollspy: the last section whose top crossed the line. */
+function runSpy() {
+	spyTicking = false;
+	if (jumping) return;
+	const sections = timelineEl.querySelectorAll(".timeline-year");
+	if (sections.length === 0) return;
+
+	let current = null;
+	for (const section of sections) {
+		if (section.getBoundingClientRect().top > spyLine) break;
+		current = section;
+	}
+	for (const section of sections) {
+		if (section !== current) delete section.dataset.current;
+	}
+	if (current) {
+		current.dataset.current = "true";
+		setActiveChip(current.dataset.year);
+		syncUrl(current.dataset.year);
+	} else {
+		// Above the first year section: highlight "Todos".
+		setActiveChip("all");
+		syncUrl("all");
+	}
 }
 
 function applyNavMetrics() {
@@ -508,6 +575,9 @@ function applyNavMetrics() {
 	for (const section of timelineEl.querySelectorAll(".timeline-year")) {
 		section.style.scrollMarginTop = `${navHeight + 8}px`;
 	}
+
+	// The spy activation line depends on the nav height: rebuild it.
+	setupScrollSpy();
 }
 
 function setupNavMetrics() {

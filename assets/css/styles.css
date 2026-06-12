@@ -649,9 +649,9 @@ a {
 	/* The leading padding clears the floating search circle pinned at
      the top-left corner once the nav sticks to the viewport. */
 	padding: var(--space-xs) var(--space-m) var(--space-xs)
-		calc(2.75rem + var(--space-l));
-	background: color-mix(in srgb, var(--paper) 92%, transparent);
-	backdrop-filter: blur(6px);
+		calc(2.75rem + var(--space-xs));
+	/* Opaque: the timeline's gold headings scroll right behind it. */
+	background: var(--paper);
 	border-block-end: 1px solid var(--line);
 	-webkit-overflow-scrolling: touch;
 	scrollbar-width: none;
@@ -716,11 +716,12 @@ a {
 	scale: 0.95;
 }
 
-/* Exception: current section while scrolling (set via aria-current) */
+/* Exception: current section while scrolling (set via aria-current).
+   Mobile wears the timeline-pill gold; the desktop rail keeps brand blue. */
 .year-chip[aria-current="location"] {
-	background: var(--brand);
-	border-color: var(--brand);
-	color: #fff;
+	background: var(--gold);
+	border-color: var(--gold);
+	color: var(--brand-deep);
 }
 
 /* ---------- Block: type filter ---------- */
@@ -1015,18 +1016,9 @@ main.center {
 	}
 }
 
-/* Mobile: the heading docks onto the year bar and slides over the active
-   chip (positioned by year-dock.js); desktop pins it under the nav
-   instead (see the 1150px block). */
+/* On mobile the top year bar already marks the current year (gold chip),
+   so the heading scrolls with its cards; desktop pins it (1150px block). */
 .timeline-year > h2 {
-	position: sticky;
-	top: var(--dock-top, var(--space-2xs));
-	z-index: 15;
-	translate: 0 0;
-	scale: 1;
-	transition:
-		translate 0.25s var(--ease-out),
-		scale 0.25s var(--ease-out);
 	display: inline-block;
 	margin: 0 0 var(--space-s);
 	padding: var(--space-3xs) var(--space-s);
@@ -1037,20 +1029,6 @@ main.center {
 	background: var(--gold);
 	border-radius: var(--radius-pill);
 	box-shadow: var(--shadow-1);
-}
-
-/* Exception: docked onto the year bar, resting over the active chip.
-   Visual only — taps must reach the chips underneath. */
-.timeline-year > h2[data-docked="true"] {
-	translate: var(--dock-shift, 0) 0;
-	scale: var(--dock-scale, 0.8);
-	pointer-events: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.timeline-year > h2 {
-		transition: none;
-	}
 }
 
 /* ---------- Block: card ---------- */
@@ -2175,6 +2153,7 @@ input[readonly] {
 
 	/* Year heading floats under the nav while its cards scroll by. */
 	.timeline-year > h2 {
+		position: sticky;
 		top: calc(var(--nav-h) + var(--space-2xs));
 		z-index: 5;
 	}
@@ -2223,6 +2202,8 @@ input[readonly] {
 	}
 	.year-chip[aria-current="location"] {
 		background: var(--brand);
+		border-color: var(--brand);
+		color: #fff;
 	}
 
 	/* Search and type filters float in the right gutter, mirroring the
