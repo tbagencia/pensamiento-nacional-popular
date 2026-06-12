@@ -54,16 +54,31 @@ $next = $nextStmt->fetch(PDO::FETCH_ASSOC) ?: null;
 // Related documents: shared canonical author first, then same era by
 // other authors. Matching runs on resource_authors, not the display
 // string, so collective works connect to their individual authors.
+// Both neighbours render right next to this section, so each group
+// prefers other documents — but when a neighbour is all a group has,
+// repeating it beats hiding the relationship (the neighbour card does
+// not say it shares the author).
+$neighborIds = array_filter([(int) ($prev['id'] ?? 0), (int) ($next['id'] ?? 0)]);
+
+function pick_related(array $rows, array $neighborIds): array
+{
+    $preferred = array_values(array_filter(
+        $rows,
+        fn (array $row): bool => !in_array((int) $row['id'], $neighborIds, true)
+    ));
+    return array_slice($preferred ?: $rows, 0, 3);
+}
+
 $sameAuthorStmt = db()->prepare(
     "SELECT DISTINCT r.id, r.title, r.author, r.year
      FROM resources r
      JOIN resource_authors ra ON ra.resource_id = r.id
      WHERE r.status = 'approved' AND r.id != ?
        AND ra.author IN (SELECT author FROM resource_authors WHERE resource_id = ?)
-     ORDER BY r.year ASC, r.id ASC LIMIT 3"
+     ORDER BY r.year ASC, r.id ASC LIMIT 5"
 );
 $sameAuthorStmt->execute([$doc['id'], $doc['id']]);
-$sameAuthor = $sameAuthorStmt->fetchAll(PDO::FETCH_ASSOC);
+$sameAuthor = pick_related($sameAuthorStmt->fetchAll(PDO::FETCH_ASSOC), $neighborIds);
 
 $sameEraStmt = db()->prepare(
     "SELECT id, title, author, year FROM resources
@@ -73,10 +88,10 @@ $sameEraStmt = db()->prepare(
            SELECT resource_id FROM resource_authors
            WHERE author IN (SELECT author FROM resource_authors WHERE resource_id = ?)
        )
-     ORDER BY ABS(year - ?) ASC, id ASC LIMIT 3"
+     ORDER BY ABS(year - ?) ASC, id ASC LIMIT 5"
 );
 $sameEraStmt->execute([$doc['id'], $doc['year'], $doc['year'], $doc['id'], $doc['year']]);
-$sameEra = $sameEraStmt->fetchAll(PDO::FETCH_ASSOC);
+$sameEra = pick_related($sameEraStmt->fetchAll(PDO::FETCH_ASSOC), $neighborIds);
 
 // "Más de Juan Domingo Perón" reads well; for collective display strings
 // like FORJA's, a neutral heading avoids repeating the whole parenthesis,
@@ -124,7 +139,7 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
   <script src="/assets/js/font-scale.js?v=1"></script>
-  <link rel="stylesheet" href="/assets/css/styles.css?v=39">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=42">
   <script type="application/ld+json"><?= json_encode([
       '@context' => 'https://schema.org',
       '@type' => 'Article',
@@ -160,7 +175,7 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
   <main class="doc-page">
     <div class="doc-rail">
       <?php if ($prev): ?>
-        <a class="doc-neighbor" href="<?= $e(document_path($prev)) ?>">
+        <a class="doc-neighbor" href="<?= $e(document_path($prev)) ?>" title="Ver «<?= $e($prev['title']) ?>»">
           <span class="doc-neighbor-year"><?= (int) $prev['year'] ?></span>
           <span class="doc-neighbor-card">
             <span class="doc-neighbor-title"><?= $e($prev['title']) ?></span>
@@ -186,8 +201,46 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
         <p class="excerpt"><?= $e($doc['excerpt']) ?></p>
       </article>
 
+      <?php if ($sameAuthor || $sameEra): ?>
+        <section class="doc-related" aria-labelledby="related-heading">
+          <h2 id="related-heading">Documentos relacionados</h2>
+
+          <?php if ($sameAuthor): ?>
+            <h3><?= $e($sameAuthorHeading) ?></h3>
+            <ul class="doc-related-list">
+              <?php foreach ($sameAuthor as $rel): ?>
+                <li>
+                  <a href="<?= $e(document_path($rel)) ?>" title="Ver «<?= $e($rel['title']) ?>»">
+                    <span class="doc-related-year"><?= (int) $rel['year'] ?></span>
+                    <span class="doc-related-title"><?= $e($rel['title']) ?></span>
+                    <?php if ($isCollective): ?>
+                      <span class="doc-related-author"><?= $e($rel['author']) ?></span>
+                    <?php endif; ?>
+                  </a>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+
+          <?php if ($sameEra): ?>
+            <h3>De la misma época</h3>
+            <ul class="doc-related-list">
+              <?php foreach ($sameEra as $rel): ?>
+                <li>
+                  <a href="<?= $e(document_path($rel)) ?>" title="Ver «<?= $e($rel['title']) ?>»">
+                    <span class="doc-related-year"><?= (int) $rel['year'] ?></span>
+                    <span class="doc-related-title"><?= $e($rel['title']) ?></span>
+                    <span class="doc-related-author"><?= $e($rel['author']) ?></span>
+                  </a>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+        </section>
+      <?php endif; ?>
+
       <?php if ($next): ?>
-        <a class="doc-neighbor" href="<?= $e(document_path($next)) ?>">
+        <a class="doc-neighbor" href="<?= $e(document_path($next)) ?>" title="Ver «<?= $e($next['title']) ?>»">
           <span class="doc-neighbor-year"><?= (int) $next['year'] ?></span>
           <span class="doc-neighbor-card">
             <span class="doc-neighbor-title"><?= $e($next['title']) ?></span>
@@ -196,44 +249,6 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
         </a>
       <?php endif; ?>
     </div>
-
-    <?php if ($sameAuthor || $sameEra): ?>
-      <section class="doc-related" aria-labelledby="related-heading">
-        <h2 id="related-heading">Documentos relacionados</h2>
-
-        <?php if ($sameAuthor): ?>
-          <h3><?= $e($sameAuthorHeading) ?></h3>
-          <ul class="doc-related-list">
-            <?php foreach ($sameAuthor as $rel): ?>
-              <li>
-                <a href="<?= $e(document_path($rel)) ?>">
-                  <span class="doc-related-year"><?= (int) $rel['year'] ?></span>
-                  <span class="doc-related-title"><?= $e($rel['title']) ?></span>
-                  <?php if ($isCollective): ?>
-                    <span class="doc-related-author"><?= $e($rel['author']) ?></span>
-                  <?php endif; ?>
-                </a>
-              </li>
-            <?php endforeach; ?>
-          </ul>
-        <?php endif; ?>
-
-        <?php if ($sameEra): ?>
-          <h3>De la misma época</h3>
-          <ul class="doc-related-list">
-            <?php foreach ($sameEra as $rel): ?>
-              <li>
-                <a href="<?= $e(document_path($rel)) ?>">
-                  <span class="doc-related-year"><?= (int) $rel['year'] ?></span>
-                  <span class="doc-related-title"><?= $e($rel['title']) ?></span>
-                  <span class="doc-related-author"><?= $e($rel['author']) ?></span>
-                </a>
-              </li>
-            <?php endforeach; ?>
-          </ul>
-        <?php endif; ?>
-      </section>
-    <?php endif; ?>
 
     <p class="doc-cta">
       <a class="btn btn-ghost" href="<?= $e($timelineUrl) ?>">Ver este documento en la línea de tiempo</a>

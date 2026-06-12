@@ -1193,12 +1193,20 @@ main.center {
 }
 
 /* Keep the card title clear of the floating icon buttons. */
-.card h3 {
-	padding-inline-end: var(--space-l);
+/* No inline-end padding on the title: the action icons end above the
+   badge row's baseline, so they never share a line with it. */
+
+/* The title links to the document's own page. */
+.card h3 a {
+	color: inherit;
+	text-decoration: none;
 }
 
-.card:has(.source-btn) h3 {
-	padding-inline-end: var(--space-2xl);
+.card h3 a:hover {
+	text-decoration: underline;
+	text-decoration-color: var(--gold);
+	text-decoration-thickness: 2px;
+	text-underline-offset: 4px;
 }
 
 /* The reveal animation leaves `translate` on every card, making each
@@ -1459,12 +1467,7 @@ main.center {
 .doc-card h1 {
 	margin-block: var(--space-3xs);
 	font-size: var(--text-2);
-	padding-inline-end: var(--space-l);
 	color: var(--brand-deep);
-}
-
-.doc-card:has(.source-btn) h1 {
-	padding-inline-end: var(--space-2xl);
 }
 
 /* Quiet exit: the header already offers "back", so this is a low-key
@@ -1561,12 +1564,16 @@ main.center {
 	color: var(--muted);
 }
 
-/* Related documents: same author and same era, small cards in the
-   visual language of the neighbours. Off the rail on purpose — these
-   are lateral jumps through the archive, not the timeline itself. */
+/* Related documents: same author and same era, between the document
+   and its next neighbour. Indented and tight against the card so they
+   read as subordinate to it — lateral jumps, not the timeline. */
 .doc-related {
+	margin-block-start: 0;
+	margin-inline-start: var(--space-l);
+}
+
+.doc-related + .doc-neighbor {
 	margin-block-start: var(--space-xl);
-	padding-inline-start: var(--space-m);
 }
 
 .doc-related h2 {

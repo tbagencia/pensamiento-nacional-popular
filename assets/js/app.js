@@ -142,7 +142,7 @@ function renderTimeline(resources) {
 						: ""
 				}
         <span class="badge badge-type">${escapeHtml(item.type)}</span>
-        <h3>${markMatches(item.title)}</h3>
+        <h3><a href="${escapeHtml(item.path)}" title="Ver «${escapeHtml(item.title)}»">${markMatches(item.title)}</a></h3>
         <p class="author">${markMatches(item.author)}</p>
         <p class="excerpt" ${isLong ? 'data-state="collapsed"' : ""}>${markMatches(item.excerpt)}</p>
         ${isLong ? '<button type="button" class="read-more" aria-expanded="false">Leer más</button>' : ""}`;

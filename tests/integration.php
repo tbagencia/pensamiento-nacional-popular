@@ -222,8 +222,9 @@ $forjaId = (int) db()->query(
 $location = request('GET', "/documento/$forjaId")['headers']['location'] ?? '';
 $res = request('GET', $location);
 check(str_contains($res['body'], 'De los mismos autores'), 'collective document uses the neutral heading');
-// LIMIT 3 keeps the oldest works, so assert one inside that window.
-check(str_contains($res['body'], 'El Paso de los Libres'), 'collective document lists its authors\' works');
+// El Paso de los Libres (1934) is the manifesto's prev neighbour, so
+// it is excluded from related; the zonceras manual takes its slot.
+check(str_contains($res['body'], 'Manual de zonceras argentinas'), 'collective document lists its authors\' works');
 
 section('Authors API');
 $res = request('GET', '/api/authors.php');
