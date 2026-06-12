@@ -139,7 +139,8 @@ El cliente SMTP (`api/mailer.php`) es PHP puro, sin Composer.
 Suite de integración sin dependencias que levanta un servidor de prueba con
 una base descartable y recorre el circuito completo por HTTP (carga,
 validación de email, salto de validación por sesión, límite diario,
-moderación con CSRF, página de documento y sitemap):
+moderación con CSRF, edición desde el panel, rechazo con motivo, página
+de documento y sitemap):
 
 ```bash
 php tests/integration.php
