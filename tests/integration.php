@@ -306,6 +306,48 @@ $res = request('POST', ADMIN_URL, [
 ]);
 check($res['status'] === 403, 'invalid CSRF is rejected with 403');
 
+section('Admin edit and reject feedback');
+$res = request('POST', ADMIN_URL, [
+    'form' => [
+        'action' => 'edit', 'id' => $id, 'csrf' => $csrf,
+        'title' => '', 'author' => 'Autora', 'year' => 1950, 'type' => 'carta', 'excerpt' => 'x',
+    ],
+    'headers' => ['X-Requested-With: fetch'],
+    'cookies' => 'admin',
+]);
+check($res['status'] === 422 && isset($res['json']['errors']['title']), 'edit with empty title returns 422', $res['json']);
+
+$res = request('POST', ADMIN_URL, [
+    'form' => [
+        'action' => 'edit', 'id' => $id, 'csrf' => $csrf,
+        'title' => 'Título corregido', 'author' => 'Autora Corregida', 'year' => 1950,
+        'type' => 'carta', 'excerpt' => 'Extracto corregido por moderación.',
+        'source_url' => 'https://example.org/fuente',
+    ],
+    'headers' => ['X-Requested-With: fetch'],
+    'cookies' => 'admin',
+]);
+check(
+    ($res['json']['ok'] ?? false) && ($res['json']['resource']['title'] ?? '') === 'Título corregido',
+    'AJAX edit returns ok with the updated resource',
+    $res['json']
+);
+$row = db()->query("SELECT title, author, year, type FROM resources WHERE id = $id")->fetch(PDO::FETCH_ASSOC);
+check(
+    $row['title'] === 'Título corregido' && (int) $row['year'] === 1950 && $row['type'] === 'carta',
+    'edited fields are persisted',
+    $row
+);
+
+$res = request('POST', ADMIN_URL, [
+    'form' => ['action' => 'reject', 'id' => $id, 'csrf' => $csrf, 'reason' => 'Duplicado de un documento ya publicado.'],
+    'headers' => ['X-Requested-With: fetch'],
+    'cookies' => 'admin',
+]);
+check(($res['json']['ok'] ?? false), 'AJAX reject with reason returns ok', $res['json']);
+$status = db()->query("SELECT status FROM resources WHERE id = $id")->fetchColumn();
+check($status === 'rejected', 'resource is rejected');
+
 $res = request('POST', ADMIN_URL, [
     'form' => ['action' => 'delete', 'id' => $id, 'csrf' => $csrf],
     'headers' => ['X-Requested-With: fetch'],

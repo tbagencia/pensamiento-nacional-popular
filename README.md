@@ -46,9 +46,13 @@ contenido antes de que se publique.
 4. Al validarse, los moderadores configurados en `MODERATOR_EMAILS` (lista
    separada por comas en `.env`) reciben un email con el documento y un enlace
    al panel.
-5. El administrador lo aprueba (`approved`), lo rechaza (`rejected`) o lo
-   elimina desde el panel de moderación — sin recargar la página, con
-   notificaciones en pantalla y confirmación en dos pasos para eliminar.
+5. El administrador lo aprueba (`approved`), lo rechaza (`rejected`), lo
+   **edita** (corregir un título, el año, el extracto) o lo elimina desde el
+   panel de moderación — sin recargar la página, con notificaciones en
+   pantalla y confirmación en dos pasos para eliminar y rechazar.
+   Quien cargó el documento recibe el resultado por email: al aprobarse, el
+   enlace a la página publicada; al rechazarse, el motivo si el moderador
+   lo indicó (opcional). Los aportes de moderadores no se autonotifican.
    El panel vive en `/admin/` por defecto; si `ADMIN_PATH` está definido en
    `.env`, pasa a responder solo en `/panel/<ADMIN_PATH>` y `/admin/`
    devuelve 404 (el secreto nunca se commitea).

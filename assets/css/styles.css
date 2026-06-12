@@ -1951,6 +1951,36 @@ input[readonly] {
 	translate: 0 calc(-1 * var(--space-2xs));
 }
 
+/* Optional reason offered on reject; travels in the submitter email. */
+.reject-reason {
+	flex-basis: 100%;
+	margin-block-start: var(--space-2xs);
+}
+
+/* Inline edit form folded under each card. */
+.admin-edit {
+	margin-block-start: var(--space-xs);
+	border-block-start: 1px solid var(--line);
+	padding-block-start: var(--space-xs);
+}
+
+.admin-edit summary {
+	cursor: pointer;
+	inline-size: fit-content;
+	font-family: var(--font-ui);
+	font-size: var(--text--1);
+	font-weight: 600;
+	color: var(--brand);
+}
+
+.admin-edit summary:hover {
+	text-decoration: underline;
+}
+
+.admin-edit-form {
+	margin-block-start: var(--space-s);
+}
+
 /* ---------- Block: toasts ---------- */
 
 .toasts {

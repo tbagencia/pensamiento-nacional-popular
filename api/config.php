@@ -35,6 +35,9 @@ define('DB_PATH', env('DB_PATH', __DIR__ . '/../data/timeline.sqlite'));
 
 const MIN_YEAR = 1800;
 
+// Document types accepted by the submission form and the moderation panel.
+const VALID_TYPES = ['discurso', 'carta', 'manifiesto', 'libro', 'ensayo', 'poema', 'entrevista', 'texto'];
+
 // Max excerpt length in characters. Generous by default so full texts
 // (a speech, a letter) fit; tune per environment via .env.
 define('EXCERPT_MAX_LENGTH', max(1, (int) env('EXCERPT_MAX_LENGTH', '10000')));

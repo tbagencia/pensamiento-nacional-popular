@@ -55,6 +55,63 @@ function notify_moderators(array $resource): void
     }
 }
 
+/** Tells the submitter their document is now published, with its URL. */
+function notify_submitter_approved(string $to, string $title, string $docUrl): bool
+{
+    $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+    $subject = 'Tu aporte ya está publicado - ' . SITE_NAME;
+
+    $body = <<<HTML
+    <!DOCTYPE html>
+    <html lang="es">
+    <body style="font-family: Arial, sans-serif; background: #f4f1ea; padding: 24px;">
+      <div style="max-width: 520px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px;">
+        <h2 style="color: #1d3557; margin-top: 0;">¡Tu aporte fue aprobado!</h2>
+        <p>Tu documento <strong>"$safeTitle"</strong> ya forma parte de la Línea de Tiempo del Pensamiento Nacional y Popular Argentino.</p>
+        <p style="text-align: center; margin: 32px 0;">
+          <a href="$docUrl" style="background: #1d6fb8; color: #fff; padding: 14px 40px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">VER PUBLICADO</a>
+        </p>
+        <p style="color: #666; font-size: 13px;">Gracias por aportar al archivo. Compartilo para que llegue a más gente.</p>
+      </div>
+    </body>
+    </html>
+    HTML;
+
+    return send_email($to, $subject, $body);
+}
+
+/** Tells the submitter their document was not published, with the reason if given. */
+function notify_submitter_rejected(string $to, string $title, string $reason): bool
+{
+    $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+    $subject = 'Sobre tu aporte - ' . SITE_NAME;
+
+    $reasonBlock = '';
+    if (trim($reason) !== '') {
+        $safeReason = nl2br(htmlspecialchars($reason, ENT_QUOTES, 'UTF-8'));
+        $reasonBlock = <<<HTML
+        <p>El motivo que indicó el moderador:</p>
+        <p style="background: #f7f3ea; border-radius: 6px; padding: 16px;">$safeReason</p>
+        HTML;
+    }
+
+    $body = <<<HTML
+    <!DOCTYPE html>
+    <html lang="es">
+    <body style="font-family: Arial, sans-serif; background: #f4f1ea; padding: 24px;">
+      <div style="max-width: 520px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px;">
+        <h2 style="color: #1d3557; margin-top: 0;">Tu aporte no fue publicado</h2>
+        <p>Revisamos tu documento <strong>"$safeTitle"</strong> y esta vez no va a formar parte de la línea de tiempo.</p>
+        $reasonBlock
+        <p style="color: #666; font-size: 13px;">Podés corregirlo y volver a enviarlo cuando quieras. Gracias por querer aportar al archivo.</p>
+      </div>
+    </body>
+    </html>
+    HTML;
+
+    return send_email($to, $subject, $body);
+}
+
 function mail_send(string $to, string $subject, string $html): bool
 {
     $headers = "MIME-Version: 1.0\r\n"

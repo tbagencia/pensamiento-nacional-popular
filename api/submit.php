@@ -24,8 +24,7 @@ if (!empty($input['website'])) {
 $title = trim($input['title'] ?? '');
 $author = trim($input['author'] ?? '');
 $year = (int) ($input['year'] ?? 0);
-$validTypes = ['discurso', 'carta', 'manifiesto', 'libro', 'ensayo', 'poema', 'entrevista', 'texto'];
-$type = in_array($input['type'] ?? '', $validTypes, true) ? $input['type'] : 'texto';
+$type = in_array($input['type'] ?? '', VALID_TYPES, true) ? $input['type'] : 'texto';
 $excerpt = trim($input['excerpt'] ?? '');
 $sourceUrl = trim($input['source_url'] ?? '');
 $email = trim($input['email'] ?? '');

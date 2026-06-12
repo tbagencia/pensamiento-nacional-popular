@@ -6,6 +6,7 @@
 
 session_start();
 require_once __DIR__ . '/../api/db.php';
+require_once __DIR__ . '/../api/mailer.php';
 
 // When ADMIN_PATH is set (production), the panel only answers at
 // /panel/{ADMIN_PATH} and the guessable /admin/ URL turns into a 404.
@@ -47,7 +48,7 @@ function tab_counts(PDO $pdo, array $tabs): array
     return $counts;
 }
 
-if ($isAdmin && in_array($_POST['action'] ?? '', ['approve', 'reject', 'delete'], true)) {
+if ($isAdmin && in_array($_POST['action'] ?? '', ['approve', 'reject', 'delete', 'edit'], true)) {
     // Requests from admin.js expect JSON; plain form posts get the redirect.
     $isAjax = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch';
 
@@ -60,15 +61,103 @@ if ($isAdmin && in_array($_POST['action'] ?? '', ['approve', 'reject', 'delete']
     }
     $id = (int) ($_POST['id'] ?? 0);
     $pdo = db();
+
+    if ($_POST['action'] === 'edit') {
+        edit_resource($pdo, $id, $_POST, $isAjax, $validTabs);
+    }
+
+    // Fetched before mutating so approve/reject can notify the submitter.
+    $stmt = $pdo->prepare("SELECT title, submitter_email FROM resources WHERE id = ?");
+    $stmt->execute([$id]);
+    $resource = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+
     match ($_POST['action']) {
         'approve' => $pdo->prepare("UPDATE resources SET status = 'approved' WHERE id = ?")->execute([$id]),
         'reject'  => $pdo->prepare("UPDATE resources SET status = 'rejected' WHERE id = ?")->execute([$id]),
         'delete'  => $pdo->prepare("DELETE FROM resources WHERE id = ?")->execute([$id]),
     };
+
+    // The submitter learns the outcome by email; moderators skip their own.
+    if ($resource && !is_moderator_email($resource['submitter_email'])) {
+        if ($_POST['action'] === 'approve') {
+            notify_submitter_approved(
+                $resource['submitter_email'],
+                $resource['title'],
+                base_url() . '/documento/' . $id
+            );
+        } elseif ($_POST['action'] === 'reject') {
+            notify_submitter_rejected(
+                $resource['submitter_email'],
+                $resource['title'],
+                trim($_POST['reason'] ?? '')
+            );
+        }
+    }
+
     if ($isAjax) {
         json_response(['ok' => true, 'counts' => tab_counts($pdo, $validTabs)]);
     }
     header('Location: index.php' . (($_POST['tab'] ?? '') ? '?tab=' . urlencode($_POST['tab']) : ''));
+    exit;
+}
+
+/** Validates and saves the moderator's edits. Mirrors the submit.php rules. */
+function edit_resource(PDO $pdo, int $id, array $input, bool $isAjax, array $validTabs): never
+{
+    $title = trim($input['title'] ?? '');
+    $author = trim($input['author'] ?? '');
+    $year = (int) ($input['year'] ?? 0);
+    $type = in_array($input['type'] ?? '', VALID_TYPES, true) ? $input['type'] : 'texto';
+    $excerpt = trim($input['excerpt'] ?? '');
+    $sourceUrl = trim($input['source_url'] ?? '');
+
+    $errors = [];
+    if ($title === '' || mb_strlen($title) > 200) {
+        $errors['title'] = 'El título es obligatorio (máximo 200 caracteres).';
+    }
+    if ($author === '' || mb_strlen($author) > 120) {
+        $errors['author'] = 'El autor es obligatorio (máximo 120 caracteres).';
+    }
+    $maxYear = (int) date('Y');
+    if ($year < MIN_YEAR || $year > $maxYear) {
+        $errors['year'] = "El año debe estar entre " . MIN_YEAR . " y $maxYear.";
+    }
+    if ($excerpt === '' || mb_strlen($excerpt) > EXCERPT_MAX_LENGTH) {
+        $errors['excerpt'] = 'La descripción o extracto es obligatoria (máximo '
+            . number_format(EXCERPT_MAX_LENGTH, 0, ',', '.') . ' caracteres).';
+    }
+    if ($sourceUrl !== '' && !filter_var($sourceUrl, FILTER_VALIDATE_URL)) {
+        $errors['source_url'] = 'La URL de la fuente no es válida.';
+    }
+    if ($errors) {
+        if ($isAjax) {
+            json_response(['ok' => false, 'errors' => $errors], 422);
+        }
+        http_response_code(422);
+        exit('Datos inválidos: ' . implode(' ', $errors));
+    }
+
+    $stmt = $pdo->prepare(
+        "UPDATE resources SET title = ?, author = ?, year = ?, type = ?, excerpt = ?, source_url = ?
+         WHERE id = ?"
+    );
+    $stmt->execute([$title, $author, $year, $type, $excerpt, $sourceUrl ?: null, $id]);
+
+    if ($isAjax) {
+        json_response([
+            'ok' => true,
+            'counts' => tab_counts($pdo, $validTabs),
+            'resource' => [
+                'title' => $title,
+                'author' => $author,
+                'year' => $year,
+                'type' => $type,
+                'excerpt' => $excerpt,
+                'source_url' => $sourceUrl,
+            ],
+        ]);
+    }
+    header('Location: index.php' . (($input['tab'] ?? '') ? '?tab=' . urlencode($input['tab']) : ''));
     exit;
 }
 
@@ -114,7 +203,7 @@ function e(?string $s): string
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=16">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=22">
 </head>
 <body class="admin-body">
 
@@ -165,7 +254,7 @@ function e(?string $s): string
         <p class="author"><?= e($r['author']) ?></p>
         <p class="excerpt"><?= nl2br(e($r['excerpt'])) ?></p>
         <?php if ($r['source_url']): ?>
-          <p><a href="<?= e($r['source_url']) ?>" target="_blank" rel="noopener noreferrer">Fuente</a></p>
+          <p class="admin-source"><a href="<?= e($r['source_url']) ?>" target="_blank" rel="noopener noreferrer">Fuente</a></p>
         <?php endif; ?>
         <p class="meta">Cargado por <?= e($r['submitter_email']) ?> · <?= e($r['created_at']) ?> UTC</p>
 
@@ -182,6 +271,53 @@ function e(?string $s): string
             </form>
           <?php endforeach; ?>
         </div>
+
+        <details class="admin-edit">
+          <summary>Editar</summary>
+          <form method="post" class="admin-edit-form">
+            <input type="hidden" name="csrf" value="<?= e($_SESSION['csrf']) ?>">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
+            <input type="hidden" name="tab" value="<?= e($tab) ?>">
+            <div class="field">
+              <label for="edit-title-<?= (int) $r['id'] ?>">Título</label>
+              <input type="text" id="edit-title-<?= (int) $r['id'] ?>" name="title" maxlength="200" required value="<?= e($r['title']) ?>">
+              <p class="field-error" data-for="title"></p>
+            </div>
+            <div class="field">
+              <label for="edit-author-<?= (int) $r['id'] ?>">Autor o autora</label>
+              <input type="text" id="edit-author-<?= (int) $r['id'] ?>" name="author" maxlength="120" required value="<?= e($r['author']) ?>">
+              <p class="field-error" data-for="author"></p>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="edit-year-<?= (int) $r['id'] ?>">Año</label>
+                <input type="number" id="edit-year-<?= (int) $r['id'] ?>" name="year" min="<?= MIN_YEAR ?>" max="<?= (int) date('Y') ?>" required value="<?= (int) $r['year'] ?>">
+                <p class="field-error" data-for="year"></p>
+              </div>
+              <div class="field">
+                <label for="edit-type-<?= (int) $r['id'] ?>">Tipo</label>
+                <select id="edit-type-<?= (int) $r['id'] ?>" name="type">
+                  <?php foreach (VALID_TYPES as $type): ?>
+                    <option value="<?= $type ?>" <?= $r['type'] === $type ? 'selected' : '' ?>><?= ucfirst($type) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="edit-excerpt-<?= (int) $r['id'] ?>">Descripción o extracto</label>
+              <textarea id="edit-excerpt-<?= (int) $r['id'] ?>" name="excerpt" rows="8" required><?= e($r['excerpt']) ?></textarea>
+              <p class="field-error" data-for="excerpt"></p>
+            </div>
+            <div class="field">
+              <label for="edit-source-<?= (int) $r['id'] ?>">Enlace a la fuente</label>
+              <input type="url" id="edit-source-<?= (int) $r['id'] ?>" name="source_url" value="<?= e($r['source_url']) ?>">
+              <p class="field-error" data-for="source_url"></p>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+            <p class="field-error" data-for="general"></p>
+          </form>
+        </details>
       </article>
     <?php endforeach; ?>
 
@@ -198,7 +334,7 @@ function e(?string $s): string
   </main>
 
   <div id="toasts" class="toasts" aria-live="polite"></div>
-  <script src="/assets/js/admin.js?v=2"></script>
+  <script src="/assets/js/admin.js?v=3"></script>
 <?php endif; ?>
 
 </body>
