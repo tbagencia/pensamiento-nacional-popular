@@ -1685,6 +1685,17 @@ input[readonly] {
 	color: var(--ok);
 }
 
+/* ---------- Block: feedback ---------- */
+
+/* Note under the submission form pointing to the feedback dialog. */
+.form-feedback-note {
+	margin-block: var(--space-l) 0;
+	text-align: center;
+	font-family: var(--font-ui);
+	font-size: var(--text--1);
+	color: var(--muted);
+}
+
 /* ---------- Block: verify / login pages ---------- */
 
 .verify-page {

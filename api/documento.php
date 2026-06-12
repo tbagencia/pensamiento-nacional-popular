@@ -81,7 +81,7 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
   <script src="/assets/js/font-scale.js?v=1"></script>
-  <link rel="stylesheet" href="/assets/css/styles.css?v=17">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18">
   <script type="application/ld+json"><?= json_encode([
       '@context' => 'https://schema.org',
       '@type' => 'Article',
@@ -192,6 +192,16 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
       >
         Acerca de
       </button>
+      ·
+      <button
+        type="button"
+        class="link-button"
+        data-feedback-trigger
+        aria-controls="feedback-panel"
+        aria-expanded="false"
+      >
+        Enviar un comentario
+      </button>
     </p>
   </footer>
 
@@ -271,6 +281,22 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
       </section>
 
       <section>
+        <h3>Comentarios</h3>
+        <p>
+          ¿Encontraste un error o tenés una sugerencia?
+          <button
+            type="button"
+            class="link-button"
+            data-feedback-trigger
+            aria-controls="feedback-panel"
+            aria-expanded="false"
+          >
+            Envianos un comentario
+          </button>
+        </p>
+      </section>
+
+      <section>
         <h3>Licencia</h3>
         <p class="credits-license">
           Código abierto bajo
@@ -315,5 +341,6 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
   <script src="/assets/js/share.js?v=4"></script>
   <script src="/assets/js/documento.js?v=1"></script>
   <script src="/assets/js/credits.js?v=2"></script>
+  <script src="/assets/js/feedback.js?v=1"></script>
 </body>
 </html>

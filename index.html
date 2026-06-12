@@ -51,7 +51,7 @@
       rel="stylesheet"
     />
     <script src="/assets/js/font-scale.js?v=1"></script>
-    <link rel="stylesheet" href="/assets/css/styles.css?v=17" />
+    <link rel="stylesheet" href="/assets/css/styles.css?v=18" />
   </head>
   <body>
     <a class="skip-link" href="#timeline">Saltar a la línea de tiempo</a>
@@ -202,6 +202,16 @@
         >
           Acerca de
         </button>
+        ·
+        <button
+          type="button"
+          class="link-button"
+          data-feedback-trigger
+          aria-controls="feedback-panel"
+          aria-expanded="false"
+        >
+          Enviar un comentario
+        </button>
       </p>
     </footer>
 
@@ -281,6 +291,22 @@
         </section>
 
         <section>
+          <h3>Comentarios</h3>
+          <p>
+            ¿Encontraste un error o tenés una sugerencia?
+            <button
+              type="button"
+              class="link-button"
+              data-feedback-trigger
+              aria-controls="feedback-panel"
+              aria-expanded="false"
+            >
+              Envianos un comentario
+            </button>
+          </p>
+        </section>
+
+        <section>
           <h3>Licencia</h3>
           <p class="credits-license">
             Código abierto bajo
@@ -318,5 +344,6 @@
     <script src="/assets/js/share.js?v=4"></script>
     <script src="/assets/js/app.js?v=15"></script>
     <script src="/assets/js/credits.js?v=2"></script>
+    <script src="/assets/js/feedback.js?v=1"></script>
   </body>
 </html>

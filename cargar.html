@@ -24,7 +24,7 @@
       rel="stylesheet"
     />
     <script src="/assets/js/font-scale.js?v=1"></script>
-    <link rel="stylesheet" href="/assets/css/styles.css?v=17" />
+    <link rel="stylesheet" href="/assets/css/styles.css?v=18" />
   </head>
   <body>
     <header class="site-header site-header-small">
@@ -214,6 +214,19 @@
         </p>
         <a href="/" class="btn btn-primary">Volver a la línea de tiempo</a>
       </div>
+
+      <p class="form-feedback-note">
+        ¿Encontraste un error o tenés una sugerencia sobre el sitio?
+        <button
+          type="button"
+          class="link-button"
+          data-feedback-trigger
+          aria-controls="feedback-panel"
+          aria-expanded="false"
+        >
+          Envianos un comentario
+        </button>
+      </p>
     </main>
 
     <aside
@@ -292,6 +305,22 @@
         </section>
 
         <section>
+          <h3>Comentarios</h3>
+          <p>
+            ¿Encontraste un error o tenés una sugerencia?
+            <button
+              type="button"
+              class="link-button"
+              data-feedback-trigger
+              aria-controls="feedback-panel"
+              aria-expanded="false"
+            >
+              Envianos un comentario
+            </button>
+          </p>
+        </section>
+
+        <section>
           <h3>Licencia</h3>
           <p class="credits-license">
             Código abierto bajo
@@ -328,5 +357,6 @@
 
     <script src="/assets/js/submit.js?v=4"></script>
     <script src="/assets/js/credits.js?v=2"></script>
+    <script src="/assets/js/feedback.js?v=1"></script>
   </body>
 </html>
