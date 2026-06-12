@@ -28,7 +28,7 @@
 					</svg>
 				</button>
 				<p class="eyebrow">Archivo colaborativo</p>
-				<h2 id="feedback-title">Enviar un comentario</h2>
+				<h2 id="feedback-title">Feedback</h2>
 			</header>
 			<div class="credits-body">
 				<form id="feedback-form" novalidate>
