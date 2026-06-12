@@ -412,10 +412,9 @@ function scrollToYear(year, behavior) {
 		const margin = parseFloat(section.style.scrollMarginTop) || 0;
 		top = window.scrollY + section.getBoundingClientRect().top - margin;
 	} else {
-		// Land past the spy line with room for the heading's drop shadow
-		// (~20px of blur), so neither it nor the pill peeks out under the
-		// bar — the gold chip is the only year marker on screen.
-		top = window.scrollY + section.getBoundingClientRect().top - spyLine + 30;
+		// Land just past the spy line: the gold heading tucks under the
+		// opaque bar while the first card stays whole below it.
+		top = window.scrollY + section.getBoundingClientRect().top - spyLine + 10;
 	}
 	window.scrollTo({ top: Math.max(0, top), behavior });
 }

@@ -640,9 +640,6 @@ a {
 /* ---------- Block: year navigation ---------- */
 
 .year-nav {
-	position: sticky;
-	top: 0;
-	z-index: 10;
 	display: flex;
 	gap: var(--space-xs);
 	overflow-x: auto;
@@ -650,15 +647,11 @@ a {
      the top-left corner once the nav sticks to the viewport. */
 	padding: var(--space-xs) var(--space-m) var(--space-xs)
 		calc(2.75rem + var(--space-xs));
-	/* Opaque: the timeline's gold headings scroll right behind it. */
-	background: var(--paper);
-	border-block-end: 1px solid var(--line);
 	-webkit-overflow-scrolling: touch;
 	scrollbar-width: none;
-	/* Fade the edges to hint that more years continue beyond them.
-     The fade zones match the inline paddings, so resting pills sit in
-     the opaque area, the magnified pill never looks clipped, and chips
-     scrolling toward the search circle fade out before reaching it. */
+	/* Fade the edges to hint that more years continue beyond them. The
+     mask punches through this element, so the opaque background lives
+     on the rail wrapper: only the chips fade, never the backdrop. */
 	-webkit-mask-image: linear-gradient(
 		to right,
 		transparent,
@@ -679,10 +672,15 @@ a {
 	display: none;
 }
 
-/* Composition: boxless on mobile; on desktop it becomes the rail's
+/* Composition: the opaque sticky shell on mobile (the timeline's gold
+   headings scroll right behind it); on desktop it becomes the rail's
    full-height grid cell so the sticky nav is clamped above the footer. */
 .year-nav-rail {
-	display: contents;
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	background: var(--paper);
+	border-block-end: 1px solid var(--line);
 }
 
 .year-chip {
@@ -2149,6 +2147,10 @@ input[readonly] {
 		display: block;
 		grid-column: 1;
 		grid-row: 2;
+		position: static;
+		z-index: auto;
+		background: transparent;
+		border-block-end: 0;
 	}
 
 	/* Year heading floats under the nav while its cards scroll by. */
