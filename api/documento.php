@@ -51,24 +51,38 @@ $nextStmt = db()->prepare(
 $nextStmt->execute([$doc['year'], $doc['year'], $doc['id']]);
 $next = $nextStmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
-// Related documents: same author first, then same era by a different
-// author. Internal links double as crawl paths through the archive.
+// Related documents: shared canonical author first, then same era by
+// other authors. Matching runs on resource_authors, not the display
+// string, so collective works connect to their individual authors.
 $sameAuthorStmt = db()->prepare(
-    "SELECT id, title, author, year FROM resources
-     WHERE status = 'approved' AND author = ? AND id != ?
-     ORDER BY year ASC, id ASC LIMIT 3"
+    "SELECT DISTINCT r.id, r.title, r.author, r.year
+     FROM resources r
+     JOIN resource_authors ra ON ra.resource_id = r.id
+     WHERE r.status = 'approved' AND r.id != ?
+       AND ra.author IN (SELECT author FROM resource_authors WHERE resource_id = ?)
+     ORDER BY r.year ASC, r.id ASC LIMIT 3"
 );
-$sameAuthorStmt->execute([$doc['author'], $doc['id']]);
+$sameAuthorStmt->execute([$doc['id'], $doc['id']]);
 $sameAuthor = $sameAuthorStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $sameEraStmt = db()->prepare(
     "SELECT id, title, author, year FROM resources
-     WHERE status = 'approved' AND id != ? AND author != ?
+     WHERE status = 'approved' AND id != ?
        AND year BETWEEN ? - 10 AND ? + 10
+       AND id NOT IN (
+           SELECT resource_id FROM resource_authors
+           WHERE author IN (SELECT author FROM resource_authors WHERE resource_id = ?)
+       )
      ORDER BY ABS(year - ?) ASC, id ASC LIMIT 3"
 );
-$sameEraStmt->execute([$doc['id'], $doc['author'], $doc['year'], $doc['year'], $doc['year']]);
+$sameEraStmt->execute([$doc['id'], $doc['year'], $doc['year'], $doc['id'], $doc['year']]);
 $sameEra = $sameEraStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// "Más de Juan Domingo Perón" reads well; for collective display strings
+// like FORJA's, a neutral heading avoids repeating the whole parenthesis,
+// and each related entry then names its own author.
+$isCollective = count(canonical_authors($doc['author'])) > 1;
+$sameAuthorHeading = $isCollective ? 'De los mismos autores' : 'Más de ' . $doc['author'];
 
 $pageTitle = sprintf('«%s» — %s (%d)', $doc['title'], $doc['author'], $doc['year']);
 $flatExcerpt = trim(preg_replace('/\s+/', ' ', $doc['excerpt'] ?? ''));
@@ -188,13 +202,16 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
         <h2 id="related-heading">Documentos relacionados</h2>
 
         <?php if ($sameAuthor): ?>
-          <h3>Más de <?= $e($doc['author']) ?></h3>
+          <h3><?= $e($sameAuthorHeading) ?></h3>
           <ul class="doc-related-list">
             <?php foreach ($sameAuthor as $rel): ?>
               <li>
                 <a href="<?= $e(document_path($rel)) ?>">
                   <span class="doc-related-year"><?= (int) $rel['year'] ?></span>
                   <span class="doc-related-title"><?= $e($rel['title']) ?></span>
+                  <?php if ($isCollective): ?>
+                    <span class="doc-related-author"><?= $e($rel['author']) ?></span>
+                  <?php endif; ?>
                 </a>
               </li>
             <?php endforeach; ?>

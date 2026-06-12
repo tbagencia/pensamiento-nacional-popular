@@ -34,6 +34,14 @@ function updateExcerptCounter() {
 excerptInput.addEventListener('input', updateExcerptCounter);
 updateExcerptCounter();
 
+// Author pills: existing canonical authors feed the suggestions so new
+// submissions reuse the same spelling instead of creating
+// near-duplicates. Free text is still allowed for new authors.
+fetch('/api/authors.php')
+  .then((res) => res.json())
+  .then(({ authors }) => initAuthorTags(form.elements.author, authors ?? []))
+  .catch(() => {});
+
 fetch('/api/session.php')
   .then((res) => res.json())
   .then(({ verified_email: verifiedEmail, excerpt_max_length: excerptMax }) => {

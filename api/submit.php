@@ -79,6 +79,7 @@ if ($email === ($_SESSION['verified_email'] ?? null)) {
         $title, $author, $year, $type, $excerpt, $sourceUrl ?: null, $email,
         $isModerator ? 'approved' : 'pending_review',
     ]);
+    set_resource_authors($pdo, (int) $pdo->lastInsertId(), $author);
     if (!$isModerator) {
         notify_moderators(['title' => $title, 'author' => $author, 'year' => $year]);
     }
@@ -92,6 +93,7 @@ $stmt = $pdo->prepare(
      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_email', ?)"
 );
 $stmt->execute([$title, $author, $year, $type, $excerpt, $sourceUrl ?: null, $email, $token]);
+set_resource_authors($pdo, (int) $pdo->lastInsertId(), $author);
 
 $verifyUrl = base_url() . '/validar/' . $token;
 $mailSent = send_verification_email($email, $title, $verifyUrl);

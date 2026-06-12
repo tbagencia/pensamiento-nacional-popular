@@ -110,6 +110,15 @@ for (const form of document.querySelectorAll('.admin-edit-form')) {
   });
 }
 
+// Author pills on every edit form, fed by the canonical names the
+// server inlines in #author-options.
+const authorOptions = JSON.parse(
+  document.getElementById('author-options')?.textContent ?? '[]'
+);
+for (const input of document.querySelectorAll('.admin-edit-form input[name="author"]')) {
+  initAuthorTags(input, authorOptions);
+}
+
 async function handleEdit(form) {
   const button = form.querySelector('button[type="submit"]');
   const showErrors = (errors = {}) => {

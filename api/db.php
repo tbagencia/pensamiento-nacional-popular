@@ -34,11 +34,77 @@ function db(): PDO
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resources_year ON resources(year)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status)');
 
+    // Canonical author names per resource. `resources.author` stays the
+    // display string ("FORJA (Jauretche, Scalabrini Ortiz y otros)");
+    // these rows carry the individual names matching is done against.
+    $pdo->exec("CREATE TABLE IF NOT EXISTS resource_authors (
+        resource_id INTEGER NOT NULL,
+        author TEXT NOT NULL,
+        PRIMARY KEY (resource_id, author)
+    )");
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resource_authors_author ON resource_authors(author)');
+
     if ($isNew) {
         seed($pdo);
     }
     backfill_seed_source_urls($pdo);
+    backfill_resource_authors($pdo);
     return $pdo;
+}
+
+/**
+ * Canonical author names behind a display author string.
+ * Multi-author works list their authors separated by commas, each one
+ * becoming a name matching runs against; a collective credited as a
+ * group ("FORJA") is a single name like any other. The map only covers
+ * legacy seed strings written before this convention existed.
+ */
+function canonical_authors(string $author): array
+{
+    $map = [
+        'FORJA (Jauretche, Scalabrini Ortiz y otros)' => ['Arturo Jauretche', 'Raúl Scalabrini Ortiz'],
+        'Deodoro Roca y la Federación Universitaria de Córdoba' => ['Deodoro Roca'],
+    ];
+    if (isset($map[$author])) {
+        return $map[$author];
+    }
+    // Commas split authors, except inside parentheses, mirroring the
+    // author-tags input on the front end.
+    $names = array_values(array_filter(array_map(
+        'trim',
+        preg_split('/,(?![^()]*\))/', $author)
+    )));
+    return $names ?: [$author];
+}
+
+/** Replaces the canonical author rows of a resource from its display string. */
+function set_resource_authors(PDO $pdo, int $id, string $author): void
+{
+    $pdo->prepare('DELETE FROM resource_authors WHERE resource_id = ?')->execute([$id]);
+    $stmt = $pdo->prepare('INSERT OR IGNORE INTO resource_authors (resource_id, author) VALUES (?, ?)');
+    foreach (canonical_authors($author) as $name) {
+        $stmt->execute([$id, $name]);
+    }
+}
+
+/**
+ * One-off migration (PRAGMA user_version 2): populates resource_authors
+ * for databases created before authors were normalized. The Perón-Cooke
+ * letters also get Perón, who co-wrote them but is not the display author.
+ */
+function backfill_resource_authors(PDO $pdo): void
+{
+    if ((int) $pdo->query('PRAGMA user_version')->fetchColumn() >= 2) {
+        return;
+    }
+    foreach ($pdo->query('SELECT id, author, title FROM resources')->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        set_resource_authors($pdo, (int) $row['id'], $row['author']);
+        if ($row['title'] === 'Cartas Perón-Cooke') {
+            $pdo->prepare('INSERT OR IGNORE INTO resource_authors (resource_id, author) VALUES (?, ?)')
+                ->execute([(int) $row['id'], 'Juan Domingo Perón']);
+        }
+    }
+    $pdo->exec('PRAGMA user_version = 2');
 }
 
 /**

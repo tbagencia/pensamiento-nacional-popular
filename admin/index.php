@@ -76,6 +76,9 @@ if ($isAdmin && in_array($_POST['action'] ?? '', ['approve', 'reject', 'delete',
         'reject'  => $pdo->prepare("UPDATE resources SET status = 'rejected' WHERE id = ?")->execute([$id]),
         'delete'  => $pdo->prepare("DELETE FROM resources WHERE id = ?")->execute([$id]),
     };
+    if ($_POST['action'] === 'delete') {
+        $pdo->prepare("DELETE FROM resource_authors WHERE resource_id = ?")->execute([$id]);
+    }
 
     // The submitter learns the outcome by email; moderators skip their own.
     if ($resource && !is_moderator_email($resource['submitter_email'])) {
@@ -142,6 +145,7 @@ function edit_resource(PDO $pdo, int $id, array $input, bool $isAjax, array $val
          WHERE id = ?"
     );
     $stmt->execute([$title, $author, $year, $type, $excerpt, $sourceUrl ?: null, $id]);
+    set_resource_authors($pdo, $id, $author);
 
     if ($isAjax) {
         json_response([
@@ -203,7 +207,7 @@ function e(?string $s): string
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Bitter:ital,wght@0,400;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=37">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=40">
 </head>
 <body class="admin-body">
 
@@ -290,7 +294,7 @@ function e(?string $s): string
             </div>
             <div class="field">
               <label for="edit-author-<?= (int) $r['id'] ?>">Autor o autora</label>
-              <input type="text" id="edit-author-<?= (int) $r['id'] ?>" name="author" maxlength="120" required value="<?= e($r['author']) ?>">
+              <input type="text" id="edit-author-<?= (int) $r['id'] ?>" name="author" maxlength="120" required value="<?= e($r['author']) ?>" autocomplete="off">
               <p class="field-error" data-for="author"></p>
             </div>
             <div class="field-row">
@@ -337,8 +341,19 @@ function e(?string $s): string
     </footer>
   </main>
 
+  <!-- Canonical author names for the edit forms' autocomplete, so
+       moderators converge on existing spellings while reviewing. -->
+  <script type="application/json" id="author-options"><?= json_encode(
+      db()->query(
+          "SELECT DISTINCT ra.author FROM resource_authors ra
+           JOIN resources r ON r.id = ra.resource_id
+           WHERE r.status = 'approved' ORDER BY ra.author"
+      )->fetchAll(PDO::FETCH_COLUMN),
+      JSON_HEX_TAG | JSON_UNESCAPED_UNICODE
+  ) ?></script>
   <div id="toasts" class="toasts" aria-live="polite"></div>
-  <script src="/assets/js/admin.js?v=4"></script>
+  <script src="/assets/js/author-tags.js?v=1"></script>
+  <script src="/assets/js/admin.js?v=5"></script>
 <?php endif; ?>
 
 </body>

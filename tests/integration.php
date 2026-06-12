@@ -205,6 +205,36 @@ check(str_contains($res['body'], 'doc-related'), 'document page renders a relate
 check(str_contains($res['body'], 'Más de Juan Domingo Perón'), 'related section groups by the same author');
 check(str_contains($res['body'], 'De la misma época'), 'related section groups by era');
 
+// Canonical authors connect collective works with their individual authors.
+$zoncerasId = (int) db()->query(
+    "SELECT id FROM resources WHERE title = 'Manual de zonceras argentinas'"
+)->fetchColumn();
+$location = request('GET', "/documento/$zoncerasId")['headers']['location'] ?? '';
+$res = request('GET', $location);
+check(
+    str_contains($res['body'], 'Manifiesto fundacional de FORJA'),
+    'collective work appears under its individual author',
+    $location
+);
+$forjaId = (int) db()->query(
+    "SELECT id FROM resources WHERE title = 'Manifiesto fundacional de FORJA'"
+)->fetchColumn();
+$location = request('GET', "/documento/$forjaId")['headers']['location'] ?? '';
+$res = request('GET', $location);
+check(str_contains($res['body'], 'De los mismos autores'), 'collective document uses the neutral heading');
+// LIMIT 3 keeps the oldest works, so assert one inside that window.
+check(str_contains($res['body'], 'El Paso de los Libres'), 'collective document lists its authors\' works');
+
+section('Authors API');
+$res = request('GET', '/api/authors.php');
+check($res['status'] === 200, 'authors API responds 200');
+$authors = $res['json']['authors'] ?? [];
+check(in_array('Arturo Jauretche', $authors, true), 'canonical authors include individuals behind collectives');
+check(
+    !in_array('FORJA (Jauretche, Scalabrini Ortiz y otros)', $authors, true),
+    'display-only collective strings are not suggested'
+);
+
 section('Sitemap');
 $res = request('GET', '/sitemap.xml');
 check($res['status'] === 200, 'sitemap responds 200');
@@ -228,6 +258,22 @@ $res = request('POST', '/api/submit.php', [
     'cookies' => 'visitor',
 ]);
 check($res['status'] === 201, 'long excerpt within the configured limit is accepted', $res['json'] ?? $res['body']);
+$lastId = (int) db()->query('SELECT MAX(id) FROM resources')->fetchColumn();
+check(
+    db()->query("SELECT author FROM resource_authors WHERE resource_id = $lastId")->fetchColumn() === 'Autora de Prueba',
+    'submission stores its canonical author'
+);
+
+$res = request('POST', '/api/submit.php', [
+    'json' => submission(['author' => 'Autora Una, Autor Dos', 'email' => 'duo@test.local']),
+    'cookies' => 'visitor',
+]);
+check($res['status'] === 201, 'multi-author submission is accepted', $res['json'] ?? $res['body']);
+$lastId = (int) db()->query('SELECT MAX(id) FROM resources')->fetchColumn();
+$names = db()->query(
+    "SELECT author FROM resource_authors WHERE resource_id = $lastId ORDER BY author"
+)->fetchAll(PDO::FETCH_COLUMN);
+check($names === ['Autor Dos', 'Autora Una'], 'comma-separated authors become canonical rows', $names);
 
 $res = request('POST', '/api/submit.php', ['json' => submission(['website' => 'spam-bot']), 'cookies' => 'visitor']);
 check($res['status'] === 200 && ($res['json']['ok'] ?? false), 'honeypot pretends success');
@@ -370,6 +416,10 @@ check(
     $row['title'] === 'Título corregido' && (int) $row['year'] === 1950 && $row['type'] === 'carta',
     'edited fields are persisted',
     $row
+);
+check(
+    db()->query("SELECT author FROM resource_authors WHERE resource_id = $id")->fetchColumn() === 'Autora Corregida',
+    'editing the author updates the canonical rows'
 );
 
 $res = request('POST', ADMIN_URL, [
