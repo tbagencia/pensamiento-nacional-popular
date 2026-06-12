@@ -31,7 +31,7 @@ function email_layout(string $title, string $bodyHtml, ?string $ctaLabel = null,
         $safeUrl = htmlspecialchars($ctaUrl, ENT_QUOTES, 'UTF-8');
         $cta = <<<HTML
         <p style="text-align: center; margin: 32px 0 8px;">
-          <a href="$safeUrl" style="display: inline-block; background: #f6b40e; color: #1d3557; padding: 13px 38px; border-radius: 999px; text-decoration: none; font-weight: bold; font-size: 15px;">$safeLabel</a>
+          <a href="$safeUrl" style="display: inline-block; background: #f6b40e; color: #1d3557; padding: 14px 40px; border-radius: 999px; text-decoration: none; font-weight: bold; font-size: 16px;">$safeLabel</a>
         </p>
         HTML;
     }
@@ -40,7 +40,7 @@ function email_layout(string $title, string $bodyHtml, ?string $ctaLabel = null,
     if ($footnote !== '') {
         $safeFootnote = htmlspecialchars($footnote, ENT_QUOTES, 'UTF-8');
         $foot = <<<HTML
-        <p style="color: #6e675c; font-size: 13px; margin: 24px 0 0;">$safeFootnote</p>
+        <p style="color: #6e675c; font-size: 14px; margin: 24px 0 0;">$safeFootnote</p>
         HTML;
     }
 
@@ -53,14 +53,14 @@ function email_layout(string $title, string $bodyHtml, ?string $ctaLabel = null,
       <div style="max-width: 520px; margin: 0 auto; background: #fffdf8; border-radius: 14px; overflow: hidden; border: 1px solid rgba(38, 34, 28, 0.08);">
         <div style="background: #1d3557; padding: 26px 32px 22px;">
           <p style="margin: 0 0 8px; color: #f6b40e; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">Archivo colaborativo &middot; 1810 &mdash; hoy</p>
-          <h1 style="margin: 0; color: #ffffff; font-family: Georgia, 'Times New Roman', serif; font-size: 22px; line-height: 1.3;">$safeTitle</h1>
+          <h1 style="margin: 0; color: #ffffff; font-family: Georgia, 'Times New Roman', serif; font-size: 24px; line-height: 1.3;">$safeTitle</h1>
         </div>
         <div style="font-size: 0; line-height: 0;">
           <div style="height: 2px; background: #74acdf;"></div>
           <div style="height: 2px; background: #ffffff;"></div>
           <div style="height: 2px; background: #74acdf;"></div>
         </div>
-        <div style="padding: 28px 32px 30px; color: #26221c; font-size: 15px; line-height: 1.6;">
+        <div style="padding: 28px 32px 30px; color: #26221c; font-size: 16px; line-height: 1.65;">
           $bodyHtml
           $cta
           $foot
@@ -183,7 +183,7 @@ function feedback_email_html(string $kindLabel, string $message, string $email, 
     return email_layout(
         $kindLabel,
         "<p style=\"margin: 0 0 4px;\">Un visitante dejó este mensaje en el sitio:</p>$box"
-        . "<p style=\"color: #6e675c; font-size: 13px; margin: 16px 0 0;\">Email de contacto: $safeFrom<br>Página: $safePage</p>"
+        . "<p style=\"color: #6e675c; font-size: 14px; margin: 16px 0 0;\">Email de contacto: $safeFrom<br>Página: $safePage</p>"
     );
 }
 

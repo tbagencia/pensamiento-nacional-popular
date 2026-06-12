@@ -83,8 +83,8 @@ $messages = [
 <body>
   <main class="verify-page">
     <div class="card verify-card" data-state="<?= $state ?>">
-      <p class="status-mark" data-tone="<?= $tone ?>" aria-hidden="true"><?= $mark ?></p>
       <p class="eyebrow">Archivo colaborativo</p>
+      <p class="status-mark" data-tone="<?= $tone ?>" aria-hidden="true"><?= $mark ?></p>
       <h1><?= htmlspecialchars($heading) ?></h1>
       <p><?= htmlspecialchars($detail) ?></p>
       <a class="btn btn-accent" href="/">Ir a la línea de tiempo</a>
