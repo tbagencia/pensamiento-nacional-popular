@@ -56,6 +56,12 @@ if (preg_match('#^/validar/([a-f0-9]{64})/?$#', $path, $m)) {
     return true;
 }
 
+if (preg_match('#^/documento/([0-9]+)/og\.png$#', $path, $m)) {
+    $_GET['id'] = $m[1];
+    require __DIR__ . '/api/og.php';
+    return true;
+}
+
 if (preg_match('#^/documento/([0-9]+)(?:-[a-z0-9-]*)?/?$#', $path, $m)) {
     $_GET['id'] = $m[1];
     require __DIR__ . '/api/documento.php';

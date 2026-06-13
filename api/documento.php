@@ -137,7 +137,7 @@ $e = fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
   <meta property="og:url" content="<?= $e($pageUrl) ?>">
   <meta property="og:site_name" content="<?= $e(SITE_NAME) ?>">
   <meta property="og:locale" content="es_AR">
-  <meta property="og:image" content="<?= $e(base_url()) ?>/assets/img/share-default.png">
+  <meta property="og:image" content="<?= $e(base_url()) ?>/documento/<?= (int) $doc['id'] ?>/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">

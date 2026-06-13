@@ -286,6 +286,23 @@ check(
 );
 check(end($periods)['end_year'] === null, 'the open-ended period reaches today');
 
+section('Open Graph image');
+$res = request('GET', '/documento/1/og.png');
+check($res['status'] === 200, 'og image responds 200');
+check(
+    str_starts_with($res['headers']['content-type'] ?? '', 'image/png'),
+    'og image is a png',
+    $res['headers']['content-type'] ?? null
+);
+check(strlen($res['body']) > 10000, 'og image has substance', strlen($res['body']));
+check(($res['headers']['etag'] ?? '') !== '', 'og image carries an etag');
+check(request('GET', '/documento/99999/og.png')['status'] === 404, 'unknown document og image is 404');
+$res = request('GET', $canonicalDoc1);
+check(
+    str_contains($res['body'], '/documento/1/og.png'),
+    'document page points og:image at its own image'
+);
+
 section('Sitemap');
 $res = request('GET', '/sitemap.xml');
 check($res['status'] === 200, 'sitemap responds 200');
