@@ -748,7 +748,7 @@ a {
 }
 
 .back-link {
-	color: #fff;
+	color: var(--gold);
 	opacity: 0.85;
 	text-decoration: none;
 	font-size: var(--text--1);
