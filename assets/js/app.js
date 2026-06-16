@@ -371,10 +371,12 @@ function applySearch() {
 	refreshSearchClear();
 	renderAll();
 
-	// A fresh search jumps to the top so the results are in view:
-	// the floating input means the user may be anywhere in the page.
+	// A fresh search lands on the first matching document instead of the
+	// absolute top: the floating input means the user may be anywhere in
+	// the page, and jumping to the hero pushes the matches out of view
+	// (especially on mobile, where the results sit well below the fold).
 	if (!hadWords && searchWords.length > 0) {
-		window.scrollTo({ top: 0, behavior: "auto" });
+		scrollToResults({ force: true });
 	}
 
 	if (searchWords.length === 0) {
@@ -391,13 +393,15 @@ function applySearch() {
 
 /** After a filter change, land at the start of the results instead of
  *  the absolute top: jumping to the hero hides the freshly filtered
- *  list. Already above the results? Stay put. "instant" on purpose:
- *  "auto" defers to the CSS scroll-behavior (smooth here), and that
- *  animation gets cancelled by the re-render of the cards. */
-function scrollToResults() {
+ *  list. Already above the results? Stay put — unless `force` is set
+ *  (a fresh search wants the first match in view from anywhere in the
+ *  page). "instant" on purpose: "auto" defers to the CSS scroll-behavior
+ *  (smooth here), and that animation gets cancelled by the re-render of
+ *  the cards. */
+function scrollToResults({ force = false } = {}) {
 	const top =
 		timelineEl.getBoundingClientRect().top + window.scrollY - 24;
-	if (window.scrollY > top) window.scrollTo({ top, behavior: "instant" });
+	if (force || window.scrollY > top) window.scrollTo({ top, behavior: "instant" });
 }
 
 function buildTypeNav() {
