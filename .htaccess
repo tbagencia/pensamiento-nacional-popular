@@ -45,3 +45,17 @@ RedirectMatch 404 ^/tests
   RewriteRule ^sitemap\.xml$ api/sitemap.php [L]
   RewriteRule ^panel/([A-Za-z0-9-]+)/?$ admin/index.php [L]
 </IfModule>
+
+# Two-layer cache busting. The HTML is the index that points at versioned
+# assets (?v=N), so it must always be revalidated: a cached HTML keeps
+# referencing stale asset versions and the bumps never reach the visitor
+# (forcing a hard refresh). Assets carry a manual version counter bumped
+# whenever they change, so they are safe to cache hard and long.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|php)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "\.(css|js|mjs|svg|woff2?|ttf|eot|png|jpe?g|gif|webp|avif|ico)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
