@@ -1289,15 +1289,30 @@ main.center {
 	background: color-mix(in srgb, var(--sky) 20%, #fff);
 }
 
-/* The external-source icon sits beside the share button. */
+/* An icon alone reads as a mystery here, so the source link names itself:
+ * a labelled pill beside the share button, legible without hover (the old
+ * tooltip never showed on touch, where most readers are). */
 .source-btn {
-	right: calc(var(--space-xs) + 2rem + var(--space-3xs));
+	width: auto;
+	height: 2rem;
+	grid-auto-flow: column;
+	gap: var(--space-3xs);
+	padding-inline: var(--space-2xs);
+	border-radius: var(--radius-pill);
+	right: calc(var(--space-xs) + 2rem + var(--space-2xs));
+	font-family: var(--font-ui);
+	font-size: var(--text--1);
+	font-weight: 600;
 }
 
-/* Exception: hover/focus tooltip naming the action, from data-tip. */
+.source-btn-label {
+	line-height: 1;
+}
+
+/* Exception: hover/focus tooltip naming the action, from data-tip.
+ * Share only — the source link carries its label inline. */
 @media (hover: hover) {
-	.share-btn::after,
-	.source-btn::after {
+	.share-btn::after {
 		content: attr(data-tip);
 		position: absolute;
 		inset-block-start: calc(100% + var(--space-3xs));
@@ -1317,9 +1332,7 @@ main.center {
 	}
 
 	.share-btn:hover::after,
-	.source-btn:hover::after,
-	.share-btn:focus-visible::after,
-	.source-btn:focus-visible::after {
+	.share-btn:focus-visible::after {
 		opacity: 1;
 		transition-delay: 0.35s;
 	}
