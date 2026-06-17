@@ -53,7 +53,7 @@
 							rows="6"
 							maxlength="3000"
 							required
-							placeholder="Contanos qué encontraste o qué te gustaría mejorar."
+							placeholder="Escribí acá tu mensaje..."
 						></textarea>
 						<p class="field-error" data-for="message"></p>
 					</div>
