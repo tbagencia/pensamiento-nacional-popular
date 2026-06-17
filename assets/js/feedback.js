@@ -64,9 +64,9 @@
 							id="feedback-email"
 							name="email"
 							placeholder="tu@email.com"
+							aria-describedby="feedback-email-hint"
 						/>
 						<p class="field-hint" id="feedback-email-hint">Solo si querés que te respondamos. No se publica.</p>
-						<p class="field-error" data-for="email"></p>
 					</div>
 					<!-- Honeypot field: hidden from humans, bots tend to fill it -->
 					<div class="hp-field" aria-hidden="true">
@@ -105,10 +105,18 @@
 			emailInput.required = false;
 			emailHint.textContent = "Solo si querés que te respondamos. No se publica.";
 		}
+		emailInput.removeAttribute("aria-invalid"); // fresh state on kind change
 	};
 
 	form.querySelector("#feedback-kind").addEventListener("change", (e) => {
 		applyEmailToggle(e.target.value);
+	});
+
+	// Clear the error styling as soon as the address becomes valid.
+	emailInput.addEventListener("input", () => {
+		if (emailInput.getAttribute("aria-invalid") === "true" && emailInput.checkValidity()) {
+			emailInput.removeAttribute("aria-invalid");
+		}
 	});
 
 	let lastTrigger = null;
@@ -188,18 +196,16 @@
 	form.addEventListener("submit", async (e) => {
 		e.preventDefault();
 		showErrors({});
+		emailInput.removeAttribute("aria-invalid");
 
-		if (form.kind.value === "consulta") {
-			if (form.email.value.trim() === "") {
-				showErrors({ email: "Ingrese un email para que podamos responderte." });
-				return;
-			}
-			// novalidate disables form-level validation, but checkValidity()
-			// on the type="email" input still flags a malformed address.
-			if (!form.email.checkValidity()) {
-				showErrors({ email: "Ingrese un email válido." });
-				return;
-			}
+		// For a consulta the email is required and must be well-formed.
+		// checkValidity() covers both (required + type="email") at once;
+		// the red border + red hint communicate it, so no extra message
+		// is shown. aria-invalid keeps it accessible beyond colour alone.
+		if (form.kind.value === "consulta" && !emailInput.checkValidity()) {
+			emailInput.setAttribute("aria-invalid", "true");
+			emailInput.focus();
+			return;
 		}
 
 		submitBtn.disabled = true;
@@ -224,9 +230,11 @@
 				success.hidden = false;
 				return;
 			}
-			showErrors(
-				data.errors ?? { general: "No se pudo enviar. Probá de nuevo." },
-			);
+			const errors = data.errors ?? {
+				general: "No se pudo enviar. Probá de nuevo.",
+			};
+			showErrors(errors);
+			if (errors.email) emailInput.setAttribute("aria-invalid", "true");
 		} catch {
 			showErrors({ general: "No se pudo enviar. Probá de nuevo." });
 		} finally {
