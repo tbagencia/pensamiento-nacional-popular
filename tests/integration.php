@@ -554,6 +554,45 @@ check(
     'new period can be added once the slot is free'
 );
 
+section('Feedback / consulta validation');
+
+// consulta + no email → 422 with errors.email
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'consulta', 'message' => 'Tengo una consulta sobre el archivo.', 'email' => '', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 422, 'consulta sin email → 422', $res['json'] ?? $res['body']);
+check(isset($res['json']['errors']['email']), 'consulta sin email → errors.email presente', $res['json'] ?? $res['body']);
+
+// consulta + invalid email → 422 with errors.email
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'consulta', 'message' => 'Tengo una consulta.', 'email' => 'no-es-email', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 422, 'consulta + email inválido → 422', $res['json'] ?? $res['body']);
+check(isset($res['json']['errors']['email']), 'consulta + email inválido → errors.email presente', $res['json'] ?? $res['body']);
+
+// consulta + valid email → 201
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'consulta', 'message' => 'Tengo una consulta.', 'email' => 'user@test.local', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 201, 'consulta + email válido → 201', $res['json'] ?? $res['body']);
+
+// regression: comentario + no email → still 201
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'comentario', 'message' => 'Un comentario sin email.', 'email' => '', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 201, 'comentario sin email → 201 (email sigue siendo opcional)', $res['json'] ?? $res['body']);
+
+// regression: sugerencia + no email → still 201
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'sugerencia', 'message' => 'Una sugerencia sin email.', 'email' => '', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 201, 'sugerencia sin email → 201 (email sigue siendo opcional)', $res['json'] ?? $res['body']);
+
 /* ---------- Summary ---------- */
 
 echo "\n" . str_repeat('-', 40) . "\n";
