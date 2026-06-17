@@ -600,6 +600,54 @@ $res = request('POST', '/api/feedback.php', [
 ]);
 check($res['status'] === 201, 'error sin email → 201 (email sigue siendo opcional)', $res['json'] ?? $res['body']);
 
+/* ---------- Contacto labels across views ---------- */
+
+section('Contacto labels across views');
+
+// Helper: assert a view uses "Contacto" copy and has no stale "Feedback" visible text.
+// We check the FAB text node and section heading; we do NOT check internal identifiers
+// (class="feedback-fab", data-feedback-trigger, id="feedback-panel") which are expected
+// to remain unchanged.
+// Use the canonical slug URL for documento — the bare /documento/1 returns a 301
+// (tested in the SEO section above) and would have no HTML body.
+$views = [
+    ['GET', '/',                                    'index'],
+    ['GET', '/cargar',                              'cargar'],
+    ['GET', '/documento/1-plan-de-operaciones-mariano-moreno', 'documento'],
+];
+
+foreach ($views as [$method, $path, $label]) {
+    $res = request($method, $path);
+
+    // FAB must contain "Contacto" as visible text
+    check(
+        str_contains($res['body'], 'Contacto'),
+        "$label: body contiene \"Contacto\"",
+        null
+    );
+
+    // No FAB must show "Feedback" as its visible text label
+    // The pattern ">Feedback<" or ">\n      Feedback" catches the text node inside the button
+    $hasFeedbackFabText = preg_match('/>\s*Feedback\s*<\/button>/u', $res['body']);
+    check(
+        !$hasFeedbackFabText,
+        "$label: FAB no muestra \"Feedback\" como texto visible",
+        $hasFeedbackFabText ? 'encontrado' : null
+    );
+
+    // Credits section heading must be <h3>Contacto</h3>, not <h3>Feedback</h3>
+    check(
+        !str_contains($res['body'], '<h3>Feedback</h3>'),
+        "$label: sección credits no tiene <h3>Feedback</h3>",
+        null
+    );
+    check(
+        str_contains($res['body'], '<h3>Contacto</h3>'),
+        "$label: sección credits tiene <h3>Contacto</h3>",
+        null
+    );
+}
+
 /* ---------- Summary ---------- */
 
 echo "\n" . str_repeat('-', 40) . "\n";
