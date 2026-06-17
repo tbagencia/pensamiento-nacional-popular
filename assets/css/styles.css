@@ -2014,6 +2014,19 @@ textarea:focus {
 	border-color: var(--brand);
 }
 
+/* Invalid field: red border, and the adjacent hint turns into the error
+   message (colour is paired with aria-invalid so it is not the only cue). */
+input[aria-invalid="true"],
+input[aria-invalid="true"]:focus,
+textarea[aria-invalid="true"],
+textarea[aria-invalid="true"]:focus {
+	border-color: var(--danger);
+}
+
+input[aria-invalid="true"] ~ .field-hint {
+	color: var(--danger);
+}
+
 .email-row {
 	display: flex;
 	gap: var(--space-2xs);

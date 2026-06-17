@@ -28,13 +28,13 @@
 					</svg>
 				</button>
 				<p class="eyebrow">Archivo colaborativo</p>
-				<h2 id="feedback-title">Feedback</h2>
+				<h2 id="feedback-title">Contacto</h2>
 			</header>
 			<div class="credits-body">
 				<form id="feedback-form" novalidate>
 					<p>
-						¿Encontraste un error o tenés una sugerencia? Contanos y
-						lo revisamos.
+						¿Querés hacer un comentario, una consulta o una sugerencia,
+						o reportar un error? Escribinos.
 					</p>
 					<div class="field">
 						<label for="feedback-kind">Tipo *</label>
@@ -42,6 +42,7 @@
 							<option value="comentario">Comentario</option>
 							<option value="error">Error del sitio</option>
 							<option value="sugerencia">Sugerencia</option>
+							<option value="consulta">Consulta</option>
 						</select>
 					</div>
 					<div class="field">
@@ -52,20 +53,20 @@
 							rows="6"
 							maxlength="3000"
 							required
-							placeholder="Contanos qué encontraste o qué te gustaría mejorar."
+							placeholder="Escribí acá tu mensaje..."
 						></textarea>
 						<p class="field-error" data-for="message"></p>
 					</div>
 					<div class="field">
-						<label for="feedback-email">Tu email (opcional)</label>
+						<label for="feedback-email" id="feedback-email-label">Tu email (opcional)</label>
 						<input
 							type="email"
 							id="feedback-email"
 							name="email"
 							placeholder="tu@email.com"
+							aria-describedby="feedback-email-hint"
 						/>
-						<p class="field-hint">Solo si querés que te respondamos. No se publica.</p>
-						<p class="field-error" data-for="email"></p>
+						<p class="field-hint" id="feedback-email-hint">Solo si querés que te respondamos. No se publica.</p>
 					</div>
 					<!-- Honeypot field: hidden from humans, bots tend to fill it -->
 					<div class="hp-field" aria-hidden="true">
@@ -90,6 +91,40 @@
 	const closeBtn = panel.querySelector("[data-feedback-close]");
 	const overlay = panel.querySelector("[data-feedback-overlay]");
 	const submitBtn = panel.querySelector("#feedback-submit");
+	const messageInput = panel.querySelector("#feedback-message");
+	const emailInput = panel.querySelector("#feedback-email");
+	const emailLabel = panel.querySelector("#feedback-email-label");
+	const emailHint = panel.querySelector("#feedback-email-hint");
+
+	const applyEmailToggle = (kind) => {
+		if (kind === "consulta") {
+			emailLabel.textContent = "Tu email *";
+			emailInput.required = true;
+			emailHint.textContent = "Necesitamos un email para poder responderte.";
+		} else {
+			emailLabel.textContent = "Tu email (opcional)";
+			emailInput.required = false;
+			emailHint.textContent = "Solo si querés que te respondamos. No se publica.";
+		}
+		emailInput.removeAttribute("aria-invalid"); // fresh state on kind change
+	};
+
+	form.querySelector("#feedback-kind").addEventListener("change", (e) => {
+		applyEmailToggle(e.target.value);
+	});
+
+	// Clear a field's error styling as soon as its value becomes valid.
+	const clearOnFix = (input) => {
+		input.addEventListener("input", () => {
+			if (input.getAttribute("aria-invalid") === "true" && input.checkValidity()) {
+				input.removeAttribute("aria-invalid");
+				const errEl = panel.querySelector(`.field-error[data-for="${input.name}"]`);
+				if (errEl) errEl.textContent = "";
+			}
+		});
+	};
+	clearOnFix(messageInput);
+	clearOnFix(emailInput);
 
 	let lastTrigger = null;
 
@@ -168,6 +203,36 @@
 	form.addEventListener("submit", async (e) => {
 		e.preventDefault();
 		showErrors({});
+		messageInput.removeAttribute("aria-invalid");
+		emailInput.removeAttribute("aria-invalid");
+
+		// Validate every field up front so all errors surface at once and
+		// the user is not fixed one by one. aria-invalid keeps each error
+		// accessible beyond the red colour alone. Focus the first offender.
+		const errors = {};
+		let firstInvalid = null;
+
+		// The message is always required.
+		if (!messageInput.checkValidity()) {
+			messageInput.setAttribute("aria-invalid", "true");
+			errors.message = "El mensaje es obligatorio.";
+			firstInvalid ??= messageInput;
+		}
+
+		// For a consulta the email is required and must be well-formed;
+		// checkValidity() covers both (required + type="email"). The red
+		// border + red hint carry the message, so no extra text is shown.
+		if (form.kind.value === "consulta" && !emailInput.checkValidity()) {
+			emailInput.setAttribute("aria-invalid", "true");
+			firstInvalid ??= emailInput;
+		}
+
+		if (firstInvalid) {
+			showErrors(errors);
+			firstInvalid.focus();
+			return;
+		}
+
 		submitBtn.disabled = true;
 		submitBtn.textContent = "Enviando…";
 
@@ -190,9 +255,11 @@
 				success.hidden = false;
 				return;
 			}
-			showErrors(
-				data.errors ?? { general: "No se pudo enviar. Probá de nuevo." },
-			);
+			const errors = data.errors ?? {
+				general: "No se pudo enviar. Probá de nuevo.",
+			};
+			showErrors(errors);
+			if (errors.email) emailInput.setAttribute("aria-invalid", "true");
 		} catch {
 			showErrors({ general: "No se pudo enviar. Probá de nuevo." });
 		} finally {

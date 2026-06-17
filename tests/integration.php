@@ -19,6 +19,7 @@ const ADMIN_URL = '/panel/' . ADMIN_PATH;
 $root = dirname(__DIR__);
 $dbPath = sys_get_temp_dir() . '/timeline-test-' . getmypid() . '.sqlite';
 $cookieDir = sys_get_temp_dir() . '/timeline-test-cookies-' . getmypid();
+$mailCapturePath = sys_get_temp_dir() . '/timeline-test-mail-' . getmypid() . '.jsonl';
 mkdir($cookieDir);
 
 /* ---------- Test server lifecycle ---------- */
@@ -31,18 +32,18 @@ $server = proc_open(
     array_merge(getenv(), [
         'DB_PATH' => $dbPath,
         'DEV_MODE' => 'true',
-        'MAIL_DRIVER' => 'smtp',   // with empty credentials: fails fast, sends nothing
-        'SMTP_USER' => '',
-        'SMTP_PASS' => '',
+        'MAIL_DRIVER' => 'capture',   // writes each email to MAIL_CAPTURE_PATH instead of sending
+        'MAIL_CAPTURE_PATH' => $mailCapturePath,
         'MODERATOR_EMAILS' => 'mod@test.local',
         'ADMIN_PASSWORD_HASH' => password_hash(ADMIN_PASSWORD, PASSWORD_DEFAULT),
         'ADMIN_PATH' => ADMIN_PATH,
     ])
 );
 
-register_shutdown_function(function () use ($server, $dbPath, $cookieDir) {
+register_shutdown_function(function () use ($server, $dbPath, $cookieDir, $mailCapturePath) {
     proc_terminate($server);
     @unlink($dbPath);
+    @unlink($mailCapturePath);
     array_map('unlink', glob("$cookieDir/*") ?: []);
     @rmdir($cookieDir);
 });
@@ -135,6 +136,17 @@ function db(): PDO
 {
     global $dbPath;
     return new PDO('sqlite:' . $dbPath);
+}
+
+/** Emails written by the capture mail driver, oldest first. */
+function captured_mails(): array
+{
+    global $mailCapturePath;
+    if (!is_file($mailCapturePath)) {
+        return [];
+    }
+    $lines = file($mailCapturePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    return array_map(fn (string $line) => json_decode($line, true), $lines);
 }
 
 /** Linked author names of a resource, in display order. */
@@ -553,6 +565,139 @@ check(
     (int) db()->query('SELECT COUNT(*) FROM periods')->fetchColumn() === 10,
     'new period can be added once the slot is free'
 );
+
+section('Feedback / consulta validation');
+
+// consulta + no email → 422 with errors.email
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'consulta', 'message' => 'Tengo una consulta sobre el archivo.', 'email' => '', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 422, 'consulta sin email → 422', $res['json'] ?? $res['body']);
+check(isset($res['json']['errors']['email']), 'consulta sin email → errors.email presente', $res['json'] ?? $res['body']);
+
+// consulta + invalid email → 422 with errors.email
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'consulta', 'message' => 'Tengo una consulta.', 'email' => 'no-es-email', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 422, 'consulta + email inválido → 422', $res['json'] ?? $res['body']);
+check(isset($res['json']['errors']['email']), 'consulta + email inválido → errors.email presente', $res['json'] ?? $res['body']);
+
+// consulta + valid email → 201
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'consulta', 'message' => 'Tengo una consulta.', 'email' => 'user@test.local', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 201, 'consulta + email válido → 201', $res['json'] ?? $res['body']);
+
+// regression: comentario + no email → still 201
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'comentario', 'message' => 'Un comentario sin email.', 'email' => '', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 201, 'comentario sin email → 201 (email sigue siendo opcional)', $res['json'] ?? $res['body']);
+
+// regression: sugerencia + no email → still 201
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'sugerencia', 'message' => 'Una sugerencia sin email.', 'email' => '', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 201, 'sugerencia sin email → 201 (email sigue siendo opcional)', $res['json'] ?? $res['body']);
+
+// regression: error + no email → still 201
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'error', 'message' => 'Un error sin email.', 'email' => '', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 201, 'error sin email → 201 (email sigue siendo opcional)', $res['json'] ?? $res['body']);
+
+section('Feedback / contenido del mail entregado');
+
+// A valid consulta delivers exactly one email to the moderator, carrying the
+// kind label, the visitor message and the contact email.
+$before = count(captured_mails());
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'consulta', 'message' => 'MARCA-CONSULTA-XYZ pregunta puntual.', 'email' => 'visitante@contacto.test', 'page' => '/documento/1'],
+    'cookies' => 'feedback-mail',
+]);
+check($res['status'] === 201, 'consulta válida → 201 (capture)', $res['json'] ?? $res['body']);
+$mails = captured_mails();
+check(count($mails) === $before + 1, 'consulta válida entrega exactamente un mail', count($mails) - $before);
+$mail = end($mails) ?: [];
+check(($mail['to'] ?? '') === 'mod@test.local', 'el mail va al moderador configurado', $mail['to'] ?? null);
+check(str_contains($mail['subject'] ?? '', 'Consulta'), 'el subject refleja el tipo (Consulta)', $mail['subject'] ?? null);
+check(str_contains($mail['html'] ?? '', 'MARCA-CONSULTA-XYZ'), 'el cuerpo incluye el mensaje del visitante', $mail['html'] ?? null);
+check(str_contains($mail['html'] ?? '', 'visitante@contacto.test'), 'el cuerpo incluye el email de contacto', $mail['html'] ?? null);
+
+// The honeypot must produce no email at all.
+$before = count(captured_mails());
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'comentario', 'message' => 'spam', 'email' => '', 'website' => 'http://spam', 'page' => '/'],
+    'cookies' => 'feedback-mail',
+]);
+check($res['status'] === 200, 'honeypot responde 200 (finge éxito)', $res['json'] ?? $res['body']);
+check(count(captured_mails()) === $before, 'el honeypot NO entrega mail', count(captured_mails()) - $before);
+
+// A comment without email is still delivered, with its kind and "No indicado".
+$before = count(captured_mails());
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'comentario', 'message' => 'MARCA-COMENTARIO-ABC observación.', 'email' => '', 'page' => '/'],
+    'cookies' => 'feedback-mail',
+]);
+$mails = captured_mails();
+check(count($mails) === $before + 1, 'comentario sin email también entrega mail', count($mails) - $before);
+$mail = end($mails) ?: [];
+check(str_contains($mail['subject'] ?? '', 'Comentario'), 'el subject refleja el tipo (Comentario)', $mail['subject'] ?? null);
+check(str_contains($mail['html'] ?? '', 'No indicado'), 'sin email de contacto, el cuerpo lo marca como No indicado', $mail['html'] ?? null);
+
+/* ---------- Contacto labels across views ---------- */
+
+section('Contacto labels across views');
+
+// Helper: assert a view uses "Contacto" copy and has no stale "Feedback" visible text.
+// We check the FAB text node and section heading; we do NOT check internal identifiers
+// (class="feedback-fab", data-feedback-trigger, id="feedback-panel") which are expected
+// to remain unchanged.
+// Use the canonical slug URL for documento — the bare /documento/1 returns a 301
+// (tested in the SEO section above) and would have no HTML body.
+$views = [
+    ['GET', '/',                                    'index'],
+    ['GET', '/cargar',                              'cargar'],
+    ['GET', '/documento/1-plan-de-operaciones-mariano-moreno', 'documento'],
+];
+
+foreach ($views as [$method, $path, $label]) {
+    $res = request($method, $path);
+
+    // FAB must contain "Contacto" as visible text
+    check(
+        str_contains($res['body'], 'Contacto'),
+        "$label: body contiene \"Contacto\"",
+        null
+    );
+
+    // No FAB must show "Feedback" as its visible text label
+    // The pattern ">Feedback<" or ">\n      Feedback" catches the text node inside the button
+    $hasFeedbackFabText = preg_match('/>\s*Feedback\s*<\/button>/u', $res['body']);
+    check(
+        !$hasFeedbackFabText,
+        "$label: FAB no muestra \"Feedback\" como texto visible",
+        $hasFeedbackFabText ? 'encontrado' : null
+    );
+
+    // Credits section heading must be <h3>Contacto</h3>, not <h3>Feedback</h3>
+    check(
+        !str_contains($res['body'], '<h3>Feedback</h3>'),
+        "$label: sección credits no tiene <h3>Feedback</h3>",
+        null
+    );
+    check(
+        str_contains($res['body'], '<h3>Contacto</h3>'),
+        "$label: sección credits tiene <h3>Contacto</h3>",
+        null
+    );
+}
 
 /* ---------- Summary ---------- */
 

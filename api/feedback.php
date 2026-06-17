@@ -25,6 +25,7 @@ $kindLabels = [
     'comentario' => 'Comentario',
     'error' => 'Reporte de error',
     'sugerencia' => 'Sugerencia',
+    'consulta' => 'Consulta',
 ];
 $kind = array_key_exists($input['kind'] ?? '', $kindLabels) ? $input['kind'] : 'comentario';
 $message = trim($input['message'] ?? '');
@@ -36,7 +37,11 @@ if ($message === '' || mb_strlen($message) > FEEDBACK_MAX_LENGTH) {
     $errors['message'] = 'El mensaje es obligatorio (máximo '
         . number_format(FEEDBACK_MAX_LENGTH, 0, ',', '.') . ' caracteres).';
 }
-if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+if ($kind === 'consulta' && $email === '') {
+    $errors['email'] = 'Ingrese un email para que podamos responderte.';
+} elseif ($kind === 'consulta' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $errors['email'] = 'Ingrese un email para que podamos responderte.';
+} elseif ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $errors['email'] = 'Ingrese un email válido.';
 }
 if ($errors) {

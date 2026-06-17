@@ -45,7 +45,7 @@
 		{
 			target: ".feedback-fab",
 			title: "Contanos qué te parece",
-			text: "¿Encontraste un error o tenés una sugerencia? El botón Feedback, abajo a la izquierda, siempre está a mano para enviarnos un comentario.",
+			text: "El botón Contacto, abajo a la izquierda, siempre está a mano para escribirnos.",
 		},
 	];
 

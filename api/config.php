@@ -21,8 +21,11 @@ define('MAIL_FROM_NAME', env('MAIL_FROM_NAME', 'Línea de Tiempo del Pensamiento
 // Comma-separated list notified when a resource is ready for moderation.
 define('MODERATOR_EMAILS', env('MODERATOR_EMAILS', ''));
 
-// 'smtp' (Mailtrap sandbox in dev) or 'mail' (shared hosting in production).
+// 'smtp' (Mailtrap sandbox in dev), 'mail' (shared hosting in production),
+// or 'capture' (writes each email to MAIL_CAPTURE_PATH instead of sending —
+// used by the test suite to assert email contents without an SMTP server).
 define('MAIL_DRIVER', env('MAIL_DRIVER', 'mail'));
+define('MAIL_CAPTURE_PATH', env('MAIL_CAPTURE_PATH', ''));
 define('SMTP_HOST', env('SMTP_HOST', ''));
 define('SMTP_PORT', (int) env('SMTP_PORT', '2525'));
 define('SMTP_USER', env('SMTP_USER', ''));
