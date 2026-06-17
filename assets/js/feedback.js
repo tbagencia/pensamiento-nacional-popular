@@ -91,6 +91,7 @@
 	const closeBtn = panel.querySelector("[data-feedback-close]");
 	const overlay = panel.querySelector("[data-feedback-overlay]");
 	const submitBtn = panel.querySelector("#feedback-submit");
+	const messageInput = panel.querySelector("#feedback-message");
 	const emailInput = panel.querySelector("#feedback-email");
 	const emailLabel = panel.querySelector("#feedback-email-label");
 	const emailHint = panel.querySelector("#feedback-email-hint");
@@ -112,12 +113,18 @@
 		applyEmailToggle(e.target.value);
 	});
 
-	// Clear the error styling as soon as the address becomes valid.
-	emailInput.addEventListener("input", () => {
-		if (emailInput.getAttribute("aria-invalid") === "true" && emailInput.checkValidity()) {
-			emailInput.removeAttribute("aria-invalid");
-		}
-	});
+	// Clear a field's error styling as soon as its value becomes valid.
+	const clearOnFix = (input) => {
+		input.addEventListener("input", () => {
+			if (input.getAttribute("aria-invalid") === "true" && input.checkValidity()) {
+				input.removeAttribute("aria-invalid");
+				const errEl = panel.querySelector(`.field-error[data-for="${input.name}"]`);
+				if (errEl) errEl.textContent = "";
+			}
+		});
+	};
+	clearOnFix(messageInput);
+	clearOnFix(emailInput);
 
 	let lastTrigger = null;
 
@@ -196,15 +203,33 @@
 	form.addEventListener("submit", async (e) => {
 		e.preventDefault();
 		showErrors({});
+		messageInput.removeAttribute("aria-invalid");
 		emailInput.removeAttribute("aria-invalid");
 
-		// For a consulta the email is required and must be well-formed.
-		// checkValidity() covers both (required + type="email") at once;
-		// the red border + red hint communicate it, so no extra message
-		// is shown. aria-invalid keeps it accessible beyond colour alone.
+		// Validate every field up front so all errors surface at once and
+		// the user is not fixed one by one. aria-invalid keeps each error
+		// accessible beyond the red colour alone. Focus the first offender.
+		const errors = {};
+		let firstInvalid = null;
+
+		// The message is always required.
+		if (!messageInput.checkValidity()) {
+			messageInput.setAttribute("aria-invalid", "true");
+			errors.message = "El mensaje es obligatorio.";
+			firstInvalid ??= messageInput;
+		}
+
+		// For a consulta the email is required and must be well-formed;
+		// checkValidity() covers both (required + type="email"). The red
+		// border + red hint carry the message, so no extra text is shown.
 		if (form.kind.value === "consulta" && !emailInput.checkValidity()) {
 			emailInput.setAttribute("aria-invalid", "true");
-			emailInput.focus();
+			firstInvalid ??= emailInput;
+		}
+
+		if (firstInvalid) {
+			showErrors(errors);
+			firstInvalid.focus();
 			return;
 		}
 
