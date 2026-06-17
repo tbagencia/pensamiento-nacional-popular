@@ -28,13 +28,13 @@
 					</svg>
 				</button>
 				<p class="eyebrow">Archivo colaborativo</p>
-				<h2 id="feedback-title">Feedback</h2>
+				<h2 id="feedback-title">Contacto</h2>
 			</header>
 			<div class="credits-body">
 				<form id="feedback-form" novalidate>
 					<p>
-						¿Encontraste un error o tenés una sugerencia? Contanos y
-						lo revisamos.
+						¿Tenés un comentario, encontraste un error, una sugerencia
+						o una consulta? Escribinos.
 					</p>
 					<div class="field">
 						<label for="feedback-kind">Tipo *</label>
@@ -42,6 +42,7 @@
 							<option value="comentario">Comentario</option>
 							<option value="error">Error del sitio</option>
 							<option value="sugerencia">Sugerencia</option>
+							<option value="consulta">Consulta</option>
 						</select>
 					</div>
 					<div class="field">
@@ -57,14 +58,14 @@
 						<p class="field-error" data-for="message"></p>
 					</div>
 					<div class="field">
-						<label for="feedback-email">Tu email (opcional)</label>
+						<label for="feedback-email" id="feedback-email-label">Tu email (opcional)</label>
 						<input
 							type="email"
 							id="feedback-email"
 							name="email"
 							placeholder="tu@email.com"
 						/>
-						<p class="field-hint">Solo si querés que te respondamos. No se publica.</p>
+						<p class="field-hint" id="feedback-email-hint">Solo si querés que te respondamos. No se publica.</p>
 						<p class="field-error" data-for="email"></p>
 					</div>
 					<!-- Honeypot field: hidden from humans, bots tend to fill it -->
@@ -90,6 +91,25 @@
 	const closeBtn = panel.querySelector("[data-feedback-close]");
 	const overlay = panel.querySelector("[data-feedback-overlay]");
 	const submitBtn = panel.querySelector("#feedback-submit");
+	const emailInput = panel.querySelector("#feedback-email");
+	const emailLabel = panel.querySelector("#feedback-email-label");
+	const emailHint = panel.querySelector("#feedback-email-hint");
+
+	const applyEmailToggle = (kind) => {
+		if (kind === "consulta") {
+			emailLabel.textContent = "Tu email *";
+			emailInput.required = true;
+			emailHint.textContent = "Necesitamos un email para poder responderte.";
+		} else {
+			emailLabel.textContent = "Tu email (opcional)";
+			emailInput.required = false;
+			emailHint.textContent = "Solo si querés que te respondamos. No se publica.";
+		}
+	};
+
+	form.querySelector("#feedback-kind").addEventListener("change", (e) => {
+		applyEmailToggle(e.target.value);
+	});
 
 	let lastTrigger = null;
 
@@ -168,6 +188,12 @@
 	form.addEventListener("submit", async (e) => {
 		e.preventDefault();
 		showErrors({});
+
+		if (form.kind.value === "consulta" && form.email.value.trim() === "") {
+			showErrors({ email: "Ingrese un email para que podamos responderte." });
+			return;
+		}
+
 		submitBtn.disabled = true;
 		submitBtn.textContent = "Enviando…";
 
