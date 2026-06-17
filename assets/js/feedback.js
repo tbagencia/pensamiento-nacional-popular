@@ -33,8 +33,8 @@
 			<div class="credits-body">
 				<form id="feedback-form" novalidate>
 					<p>
-						¿Tenés un comentario, encontraste un error, una sugerencia
-						o una consulta? Escribinos.
+						¿Querés hacer un comentario, una consulta o una sugerencia,
+						o reportar un error? Escribinos.
 					</p>
 					<div class="field">
 						<label for="feedback-kind">Tipo *</label>
