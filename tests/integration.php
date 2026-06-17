@@ -593,6 +593,13 @@ $res = request('POST', '/api/feedback.php', [
 ]);
 check($res['status'] === 201, 'sugerencia sin email → 201 (email sigue siendo opcional)', $res['json'] ?? $res['body']);
 
+// regression: error + no email → still 201
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'error', 'message' => 'Un error sin email.', 'email' => '', 'page' => '/'],
+    'cookies' => 'feedback-consulta',
+]);
+check($res['status'] === 201, 'error sin email → 201 (email sigue siendo opcional)', $res['json'] ?? $res['body']);
+
 /* ---------- Summary ---------- */
 
 echo "\n" . str_repeat('-', 40) . "\n";

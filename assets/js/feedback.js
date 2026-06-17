@@ -189,9 +189,17 @@
 		e.preventDefault();
 		showErrors({});
 
-		if (form.kind.value === "consulta" && form.email.value.trim() === "") {
-			showErrors({ email: "Ingrese un email para que podamos responderte." });
-			return;
+		if (form.kind.value === "consulta") {
+			if (form.email.value.trim() === "") {
+				showErrors({ email: "Ingrese un email para que podamos responderte." });
+				return;
+			}
+			// novalidate disables form-level validation, but checkValidity()
+			// on the type="email" input still flags a malformed address.
+			if (!form.email.checkValidity()) {
+				showErrors({ email: "Ingrese un email válido." });
+				return;
+			}
 		}
 
 		submitBtn.disabled = true;
