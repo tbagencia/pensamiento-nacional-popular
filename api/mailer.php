@@ -1,19 +1,42 @@
 <?php
 /**
- * Mail delivery with two drivers (see MAIL_DRIVER in config.php):
+ * Mail delivery with three drivers (see MAIL_DRIVER in config.php):
  *  - 'smtp': minimal SMTP client with STARTTLS + AUTH LOGIN. Used in
  *            development with Mailtrap (sandbox.smtp.mailtrap.io), works
  *            with any standard SMTP server. No Composer dependencies.
  *  - 'mail': PHP mail(), the right choice on shared hosting.
+ *  - 'capture': appends each email as JSON to MAIL_CAPTURE_PATH instead of
+ *            sending it, so the test suite can assert what was built.
  */
 
 require_once __DIR__ . '/config.php';
 
 function send_email(string $to, string $subject, string $html): bool
 {
-    return MAIL_DRIVER === 'smtp'
-        ? smtp_send($to, $subject, $html)
-        : mail_send($to, $subject, $html);
+    return match (MAIL_DRIVER) {
+        'smtp' => smtp_send($to, $subject, $html),
+        'capture' => capture_send($to, $subject, $html),
+        default => mail_send($to, $subject, $html),
+    };
+}
+
+/**
+ * Test driver: record the email instead of sending it. One JSON object per
+ * line (JSONL) so the suite can read them back and assert on the contents.
+ */
+function capture_send(string $to, string $subject, string $html): bool
+{
+    if (MAIL_CAPTURE_PATH === '') {
+        error_log('[mailer] capture driver selected but MAIL_CAPTURE_PATH is empty');
+        return false;
+    }
+    $entry = json_encode([
+        'to' => $to,
+        'from' => MAIL_FROM,
+        'subject' => $subject,
+        'html' => $html,
+    ], JSON_UNESCAPED_UNICODE);
+    return file_put_contents(MAIL_CAPTURE_PATH, $entry . "\n", FILE_APPEND | LOCK_EX) !== false;
 }
 
 /**

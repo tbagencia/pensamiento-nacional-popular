@@ -19,6 +19,7 @@ const ADMIN_URL = '/panel/' . ADMIN_PATH;
 $root = dirname(__DIR__);
 $dbPath = sys_get_temp_dir() . '/timeline-test-' . getmypid() . '.sqlite';
 $cookieDir = sys_get_temp_dir() . '/timeline-test-cookies-' . getmypid();
+$mailCapturePath = sys_get_temp_dir() . '/timeline-test-mail-' . getmypid() . '.jsonl';
 mkdir($cookieDir);
 
 /* ---------- Test server lifecycle ---------- */
@@ -31,18 +32,18 @@ $server = proc_open(
     array_merge(getenv(), [
         'DB_PATH' => $dbPath,
         'DEV_MODE' => 'true',
-        'MAIL_DRIVER' => 'smtp',   // with empty credentials: fails fast, sends nothing
-        'SMTP_USER' => '',
-        'SMTP_PASS' => '',
+        'MAIL_DRIVER' => 'capture',   // writes each email to MAIL_CAPTURE_PATH instead of sending
+        'MAIL_CAPTURE_PATH' => $mailCapturePath,
         'MODERATOR_EMAILS' => 'mod@test.local',
         'ADMIN_PASSWORD_HASH' => password_hash(ADMIN_PASSWORD, PASSWORD_DEFAULT),
         'ADMIN_PATH' => ADMIN_PATH,
     ])
 );
 
-register_shutdown_function(function () use ($server, $dbPath, $cookieDir) {
+register_shutdown_function(function () use ($server, $dbPath, $cookieDir, $mailCapturePath) {
     proc_terminate($server);
     @unlink($dbPath);
+    @unlink($mailCapturePath);
     array_map('unlink', glob("$cookieDir/*") ?: []);
     @rmdir($cookieDir);
 });
@@ -135,6 +136,17 @@ function db(): PDO
 {
     global $dbPath;
     return new PDO('sqlite:' . $dbPath);
+}
+
+/** Emails written by the capture mail driver, oldest first. */
+function captured_mails(): array
+{
+    global $mailCapturePath;
+    if (!is_file($mailCapturePath)) {
+        return [];
+    }
+    $lines = file($mailCapturePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    return array_map(fn (string $line) => json_decode($line, true), $lines);
 }
 
 /** Linked author names of a resource, in display order. */
@@ -599,6 +611,45 @@ $res = request('POST', '/api/feedback.php', [
     'cookies' => 'feedback-consulta',
 ]);
 check($res['status'] === 201, 'error sin email → 201 (email sigue siendo opcional)', $res['json'] ?? $res['body']);
+
+section('Feedback / contenido del mail entregado');
+
+// A valid consulta delivers exactly one email to the moderator, carrying the
+// kind label, the visitor message and the contact email.
+$before = count(captured_mails());
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'consulta', 'message' => 'MARCA-CONSULTA-XYZ pregunta puntual.', 'email' => 'visitante@contacto.test', 'page' => '/documento/1'],
+    'cookies' => 'feedback-mail',
+]);
+check($res['status'] === 201, 'consulta válida → 201 (capture)', $res['json'] ?? $res['body']);
+$mails = captured_mails();
+check(count($mails) === $before + 1, 'consulta válida entrega exactamente un mail', count($mails) - $before);
+$mail = end($mails) ?: [];
+check(($mail['to'] ?? '') === 'mod@test.local', 'el mail va al moderador configurado', $mail['to'] ?? null);
+check(str_contains($mail['subject'] ?? '', 'Consulta'), 'el subject refleja el tipo (Consulta)', $mail['subject'] ?? null);
+check(str_contains($mail['html'] ?? '', 'MARCA-CONSULTA-XYZ'), 'el cuerpo incluye el mensaje del visitante', $mail['html'] ?? null);
+check(str_contains($mail['html'] ?? '', 'visitante@contacto.test'), 'el cuerpo incluye el email de contacto', $mail['html'] ?? null);
+
+// The honeypot must produce no email at all.
+$before = count(captured_mails());
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'comentario', 'message' => 'spam', 'email' => '', 'website' => 'http://spam', 'page' => '/'],
+    'cookies' => 'feedback-mail',
+]);
+check($res['status'] === 200, 'honeypot responde 200 (finge éxito)', $res['json'] ?? $res['body']);
+check(count(captured_mails()) === $before, 'el honeypot NO entrega mail', count(captured_mails()) - $before);
+
+// A comment without email is still delivered, with its kind and "No indicado".
+$before = count(captured_mails());
+$res = request('POST', '/api/feedback.php', [
+    'json' => ['kind' => 'comentario', 'message' => 'MARCA-COMENTARIO-ABC observación.', 'email' => '', 'page' => '/'],
+    'cookies' => 'feedback-mail',
+]);
+$mails = captured_mails();
+check(count($mails) === $before + 1, 'comentario sin email también entrega mail', count($mails) - $before);
+$mail = end($mails) ?: [];
+check(str_contains($mail['subject'] ?? '', 'Comentario'), 'el subject refleja el tipo (Comentario)', $mail['subject'] ?? null);
+check(str_contains($mail['html'] ?? '', 'No indicado'), 'sin email de contacto, el cuerpo lo marca como No indicado', $mail['html'] ?? null);
 
 /* ---------- Contacto labels across views ---------- */
 
